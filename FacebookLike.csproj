@@ -4,6 +4,16 @@
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
+
+    <ItemGroup>
+      <Folder Include="Neo4j\data\" />
+      <Folder Include="Neo4j\logs\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Neo4j.Driver" Version="5.27.38" />
+    </ItemGroup>
 
 </Project>
