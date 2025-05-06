@@ -1,8 +1,5 @@
 @page "/login"
-@* @attribute [InteractiveServer] *@
 @using System.ComponentModel.DataAnnotations
-@using FacebookLike.Services
-@inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 
 <div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center">
@@ -11,12 +8,11 @@
             <div class="text-center mb-4">
                 <h1 class="text-primary fw-bold" style="font-size: 3rem;">facebook</h1>
                 <h2 class="h4 text-dark">Connectez-vous à Facebook</h2>
-                count
-                <p @bind-Value="count" class="text-muted">C'est gratuit (et ça le restera toujours)</p>
+                <p class="text-muted">Nombre de clics sur le bouton d'inscription : @count</p>
             </div>
 
             <div class="login-form">
-                <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                <EditForm Model="@loginModel" OnValidSubmit="NavigateToRegister">
                     <DataAnnotationsValidator />
                     <div class="mb-3">
                         <InputText @bind-Value="loginModel.Username" class="form-control form-control-lg" placeholder="Adresse e-mail ou numéro de téléphone" />
@@ -32,7 +28,7 @@
                     <a href="#" class="text-decoration-none">Mot de passe oublié ?</a>
                 </div>
                 <hr class="my-3" />
-                <button class="btn btn-success btn-lg w-100"
+                <button type="button" class="btn btn-success btn-lg w-100"
                         @onclick="NavigateToRegister">
                     Créer un compte 
                 </button>
@@ -44,22 +40,11 @@
 @code {
     private LoginModel loginModel = new();
     
-    private int count = 0;
-
-    private async Task HandleLogin()
-    {
-        var user = AuthService.Authenticate(loginModel.Username, loginModel.Password);
-        if (user != null)
-        {
-            // TODO: Gérer la session utilisateur
-            NavigationManager.NavigateTo("/");
-        }
-    }
+    public int count = 0;
 
     private void NavigateToRegister()
     {
-        count++;
-        NavigationManager.NavigateTo("/register");
+        ++count;
     }
 
     public class LoginModel

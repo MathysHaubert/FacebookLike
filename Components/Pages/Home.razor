@@ -10,7 +10,7 @@
             <div class="card mb-4">
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
-                        <img src="https://source.unsplash.com/random/40x40?portrait" class="rounded-circle me-2" width="40" height="40" alt="Profile" />
+                        <img src="https://picsum.photos/seed/profile1/40/40" class="rounded-circle me-2" width="40" height="40" alt="Profile" />
                         <input type="text" class="form-control" placeholder="Quoi de neuf ?" />
                     </div>
                     <hr />
@@ -34,7 +34,7 @@
                 <div class="card mb-4">
                     <div class="card-body">
                         <div class="d-flex align-items-center mb-3">
-                            <img src="https://source.unsplash.com/random/40x40?portrait" class="rounded-circle me-2" width="40" height="40" alt="@post.Author.Username" />
+                            <img src="https://picsum.photos/seed/@post.Author.Username/40/40" class="rounded-circle me-2" width="40" height="40" alt="@post.Author.Username" />
                             <div>
                                 <h6 class="mb-0">@post.Author.Username</h6>
                                 <small class="text-muted">@FormatTime(post.CreatedAt)</small>
@@ -44,6 +44,10 @@
                         @if (!string.IsNullOrEmpty(post.ImageUrl))
                         {
                             <img src="@post.ImageUrl" class="img-fluid rounded mb-3" alt="Post image" />
+                        }
+                        else
+                        {
+                            <img src="https://picsum.photos/seed/@post.Id/800/400" class="img-fluid rounded mb-3" alt="Post image" />
                         }
                         <div class="d-flex justify-content-between text-muted mb-2">
                             <span>@post.LikesCount J'aime</span>

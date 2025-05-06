@@ -49,8 +49,7 @@ else
 }
 
 // app.UseHttpsRedirection();
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+
 app.UseStaticFiles();
 app.UseAntiforgery();
 

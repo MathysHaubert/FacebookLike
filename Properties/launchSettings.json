@@ -12,11 +12,11 @@
       "http": {
         "commandName": "Project",
         "dotnetRunMessages": true,
-        "launchBrowser": true,
         "applicationUrl": "http://localhost:5205",
         "environmentVariables": {
           "ASPNETCORE_ENVIRONMENT": "Development"
-        }
+        },
+        "hotReloadEnabled": true
       },
       "https": {
         "commandName": "Project",
