@@ -1,0 +1,73 @@
+@page "/login"
+@* @attribute [InteractiveServer] *@
+@using System.ComponentModel.DataAnnotations
+@using FacebookLike.Services
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center">
+    <div class="card shadow-sm" style="max-width: 400px; width: 100%;">
+        <div class="card-body p-4">
+            <div class="text-center mb-4">
+                <h1 class="text-primary fw-bold" style="font-size: 3rem;">facebook</h1>
+                <h2 class="h4 text-dark">Connectez-vous à Facebook</h2>
+                count
+                <p @bind-Value="count" class="text-muted">C'est gratuit (et ça le restera toujours)</p>
+            </div>
+
+            <div class="login-form">
+                <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
+                        <InputText @bind-Value="loginModel.Username" class="form-control form-control-lg" placeholder="Adresse e-mail ou numéro de téléphone" />
+                        <ValidationMessage For="@(() => loginModel.Username)" class="text-danger small" />
+                    </div>
+                    <div class="mb-3">
+                        <InputText type="password" @bind-Value="loginModel.Password" class="form-control form-control-lg" placeholder="Mot de passe" />
+                        <ValidationMessage For="@(() => loginModel.Password)" class="text-danger small" />
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">Se connecter</button>
+                </EditForm>
+                <div class="text-center mb-3">
+                    <a href="#" class="text-decoration-none">Mot de passe oublié ?</a>
+                </div>
+                <hr class="my-3" />
+                <button class="btn btn-success btn-lg w-100"
+                        @onclick="NavigateToRegister">
+                    Créer un compte 
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    
+    private int count = 0;
+
+    private async Task HandleLogin()
+    {
+        var user = AuthService.Authenticate(loginModel.Username, loginModel.Password);
+        if (user != null)
+        {
+            // TODO: Gérer la session utilisateur
+            NavigationManager.NavigateTo("/");
+        }
+    }
+
+    private void NavigateToRegister()
+    {
+        count++;
+        NavigationManager.NavigateTo("/register");
+    }
+
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "Le nom d'utilisateur est requis")]
+        public string Username { get; set; }
+
+        [Required(ErrorMessage = "Le mot de passe est requis")]
+        public string Password { get; set; }
+    }
+} 

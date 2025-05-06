@@ -1,4 +1,5 @@
 using FacebookLike.Components;
+using FacebookLike.Services;
 using FacebookLike.Neo4j.DataSeeder;
 using FacebookLike.Service.Neo4jService;
 using Neo4j.Driver;
@@ -8,6 +9,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Ajout des services d'authentification
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddControllers();
 
 // Configuration Neo4j.Driver
 builder.Services.AddSingleton<IDriver>(_ =>
@@ -42,11 +48,12 @@ else
     }
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+app.MapControllers();
 
 app.Run();
