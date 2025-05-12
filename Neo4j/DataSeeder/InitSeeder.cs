@@ -24,6 +24,7 @@ public class InitSeeder
         await _neo4JService.CreateUserAsync(pierre);
         await _neo4JService.CreateUserAsync(paul);
         await _neo4JService.CreateFriendshipAsync("alice", "bob");
+        await _neo4JService.CreateFriendshipAsync("bob", "alice");
         await _neo4JService.CreateFriendshipAsync("bob", "pierre");
         await _neo4JService.CreateFriendshipAsync("pierre", "alice");
     }
