@@ -27,12 +27,12 @@ namespace FacebookLike.Services
             };
         }
 
-        public User Authenticate(string username, string password)
+        public User? Authenticate(string username, string password)
         {
             return _users.FirstOrDefault(x => x.Username == username && x.Password == password);
         }
 
-        public User GetUserById(int id)
+        public User? GetUserById(int id)
         {
             return _users.FirstOrDefault(x => x.Id == id);
         }

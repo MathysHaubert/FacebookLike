@@ -1,6 +1,9 @@
 @page "/login"
+@rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
+@using FacebookLike.Services
 @inject NavigationManager NavigationManager
+@inject IAuthService AuthService
 
 <div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center">
     <div class="card shadow-sm" style="max-width: 400px; width: 100%;">
@@ -8,11 +11,10 @@
             <div class="text-center mb-4">
                 <h1 class="text-primary fw-bold" style="font-size: 3rem;">facebook</h1>
                 <h2 class="h4 text-dark">Connectez-vous à Facebook</h2>
-                <p class="text-muted">Nombre de clics sur le bouton d'inscription : @count</p>
             </div>
 
             <div class="login-form">
-                <EditForm Model="@loginModel" OnValidSubmit="NavigateToRegister">
+                <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
                     <DataAnnotationsValidator />
                     <div class="mb-3">
                         <InputText @bind-Value="loginModel.Username" class="form-control form-control-lg" placeholder="Adresse e-mail ou numéro de téléphone" />
@@ -39,12 +41,19 @@
 
 @code {
     private LoginModel loginModel = new();
-    
-    public int count = 0;
+
+    private void HandleLogin()
+    {
+        var user = AuthService.Authenticate(loginModel.Username, loginModel.Password);
+        if (user != null)
+        {
+            NavigationManager.NavigateTo("/");
+        }
+    }
 
     private void NavigateToRegister()
     {
-        ++count;
+        NavigationManager.NavigateTo("/register");
     }
 
     public class LoginModel
