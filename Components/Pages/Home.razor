@@ -1,6 +1,6 @@
 ﻿@page "/"
 @using FacebookLike.Models
-@using FacebookLike.Services
+@using FacebookLike.Service
 @inject IPostService PostService
 
 <div class="container py-4">
@@ -29,14 +29,14 @@
             </div>
 
             <!-- Liste des posts -->
-            @foreach (var post in posts)
+            @foreach (var post in _posts)
             {
                 <div class="card mb-4">
                     <div class="card-body">
                         <div class="d-flex align-items-center mb-3">
-                            <img src="https://picsum.photos/seed/@post.Author.Username/40/40" class="rounded-circle me-2" width="40" height="40" alt="@post.Author.Username" />
+                            @* <img src="https://picsum.photos/seed/@post.Author.Username/40/40" class="rounded-circle me-2" width="40" height="40" alt="@post.Author.Username" /> *@
                             <div>
-                                <h6 class="mb-0">@post.Author.Username</h6>
+                                @* <h6 class="mb-0">@post.Author.Username</h6> *@
                                 <small class="text-muted">@FormatTime(post.CreatedAt)</small>
                             </div>
                         </div>
@@ -55,8 +55,9 @@
                         </div>
                         <hr />
                         <div class="d-flex justify-content-between">
-                            <button class="btn btn-light w-100 me-2" @onclick="() => ToggleLike(post)">
-                                <i class="bi @(post.IsLiked ? "bi-heart-fill text-danger" : "bi-heart")"></i>
+                            <button class="btn btn-light w-100 me-2" @onclick="() => AddOrRemoveLike(post)">
+                                @* <i class="bi @(post.IsLikedByUser ? "bi-heart-fill text-danger" : "bi-heart")"></i> *@
+                                <i class="bi bi-heart"></i>
                                 J'aime
                             </button>
                             <button class="btn btn-light w-100">
@@ -72,38 +73,29 @@
 </div>
 
 @code {
-    private List<Post> posts;
+    private List<Post> _posts = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        posts = PostService.GetPosts();
+        _posts = await PostService.GetPostsAsync();
     }
 
-    private void ToggleLike(Post post)
+    private void AddOrRemoveLike(Post post)
     {
-        if (post.IsLiked)
-        {
-            PostService.UnlikePost(post.Id);
-        }
-        else
-        {
-            PostService.LikePost(post.Id);
-        }
+        PostService.AddOrRemoveLike(post);
     }
 
     private string FormatTime(DateTime dateTime)
     {
         var timeSpan = DateTime.Now - dateTime;
-        
         if (timeSpan.TotalMinutes < 1)
-            return "À l'instant";
+            return "Now";
         if (timeSpan.TotalMinutes < 60)
-            return $"Il y a {(int)timeSpan.TotalMinutes} minute(s)";
+            return (int)timeSpan.TotalMinutes + " minute(s) ago";
         if (timeSpan.TotalHours < 24)
-            return $"Il y a {(int)timeSpan.TotalHours} heure(s)";
-        if (timeSpan.TotalDays < 7)
-            return $"Il y a {(int)timeSpan.TotalDays} jour(s)";
-        
+            return (int)timeSpan.TotalHours + "hour(s) ago";
+        if (timeSpan.TotalDays < 3)
+            return (int)timeSpan.TotalDays + " day(s)";
         return dateTime.ToString("dd/MM/yyyy");
     }
 }
