@@ -10,9 +10,9 @@ namespace FacebookLike.Service
         public User? CurrentUser => _currentUser;
         public event Action? OnAuthStateChanged;
 
-        public async Task<User?> Authenticate(string username, string password)
+        public async Task<User?> Authenticate(string email, string password)
         {
-            var user = await userRepository.GetByUsernameAndPassword(username, password);
+            var user = await userRepository.GetByUsernameAndPassword(email, password);
             _currentUser = user;
             OnAuthStateChanged?.Invoke();
             return user;

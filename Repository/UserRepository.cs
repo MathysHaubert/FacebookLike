@@ -6,12 +6,12 @@ namespace FacebookLike.Repository;
 
 public class UserRepository(IGraphClient client)
 {
-    public async Task<User?> GetByUsernameAndPassword(string username, string password)
+    public async Task<User?> GetByUsernameAndPassword(string email, string password)
     {
         var encodedPassword = PasswordEncoder.Encode(password);
         var user = await client.Cypher
             .Match("(u:User)")
-            .Where((User u) => u.Username == username && u.Password == encodedPassword)
+            .Where((User u) => u.Email == email && u.Password == encodedPassword)
             .Return(u => u.As<User>())
             .ResultsAsync;
         return user.SingleOrDefault();

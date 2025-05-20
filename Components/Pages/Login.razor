@@ -63,7 +63,7 @@
         var user = await AuthService.Authenticate(loginModel.Username, loginModel.Password);
         if (user != null)
         {
-            NavigationManager.NavigateTo("/");
+            NavigationManager.NavigateTo("/",true);
         }
         else
         {

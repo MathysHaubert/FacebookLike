@@ -1,0 +1,54 @@
+﻿@page "/my-profile"
+
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Mon Profil</h2>
+
+            <div class="d-flex align-items-center mb-4">
+                <img src="https://api.dicebear.com/9.x/dylan/svg" class="rounded-circle border me-3" alt="Avatar" width="100" height="100" />
+                <div>
+                    <h5 class="mb-0">@UserName</h5>
+                    <small class="text-muted">user@email.com</small>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Prénom</label>
+                    <input type="text" class="form-control" @bind="FirstName" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Nom</label>
+                    <input type="text" class="form-control" @bind="LastName" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" @bind="Email" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Téléphone</label>
+                    <input type="tel" class="form-control" @bind="Phone" />
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button class="btn btn-primary" @onclick="SaveChanges">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string FirstName { get; set; } = "Jean";
+    private string LastName { get; set; } = "Dupont";
+    private string Email { get; set; } = "jean.dupont@email.com";
+    private string Phone { get; set; } = "0600000000";
+    private string UserName => $"{FirstName.ToLower()}.{LastName.ToLower()}";
+
+    private void SaveChanges()
+    {
+        // Ici, tu peux appeler ton service ou API pour sauvegarder les données
+        Console.WriteLine("Profil mis à jour !");
+    }
+}
