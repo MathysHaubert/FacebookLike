@@ -1,0 +1,16 @@
+﻿services:
+  neo4j:
+    image: neo4j:latest
+    container_name: neo4j
+    ports:
+      - "7474:7474"   # HTTP (interface web)
+      - "7687:7687"   # Bolt (connexion via drivers)
+    environment:
+      NEO4J_AUTH: "${NEO4J_AUTH}"
+    volumes:
+      - ./Neo4j/data:/data
+      - ./Neo4j/logs:/logs
+
+volumes:
+  neo4j_data:
+  neo4j_logs:

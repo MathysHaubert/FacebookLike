@@ -23,6 +23,9 @@
       <None Update=".env">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="compose.yaml">
+        <DependentUpon>Dockerfile</DependentUpon>
+      </None>
     </ItemGroup>
 
     <ItemGroup>
