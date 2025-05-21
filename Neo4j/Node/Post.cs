@@ -1,6 +1,4 @@
-﻿using FacebookLike.Neo4j.Node;
-
-namespace FacebookLike.Models
+﻿namespace FacebookLike.Neo4j.Node
 {
     public class Post
     {
@@ -9,7 +7,5 @@ namespace FacebookLike.Models
         public string Content { get; set; }
         public string? ImageUrl { get; set; }
         public DateTime CreatedAt { get; set; }
-        public int LikesCount { get; set; }
-        public int CommentsCount { get; set; }
     }
 }
