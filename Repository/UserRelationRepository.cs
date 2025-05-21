@@ -1,3 +1,4 @@
+using FacebookLike.Neo4j.Node;
 using Neo4jClient;
 
 namespace FacebookLike.Service.Neo4jService;
@@ -18,5 +19,15 @@ public class UserRelationRepository
             .WithParam("to", toUsername)
             .Create("(a)-[:FRIEND]->(b)")
             .ExecuteWithoutResultsAsync();
+    }
+
+    public async Task<List<string>> GetFriendIds(string userId)
+    {
+        var result = await _client.Cypher
+            .Match("(a:User {Id: $userId})-[:FRIEND]->(b:User)")
+            .WithParam("userId", userId)
+            .Return(b => b.As<User>().Id)
+            .ResultsAsync;
+        return result.ToList();
     }
 } 

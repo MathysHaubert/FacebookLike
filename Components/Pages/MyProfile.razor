@@ -1,4 +1,7 @@
 ﻿@page "/my-profile"
+@using FacebookLike.Service
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
 
 <div class="container mt-5">
     <div class="card shadow">
@@ -45,6 +48,15 @@
     private string Email { get; set; } = "jean.dupont@email.com";
     private string Phone { get; set; } = "0600000000";
     private string UserName => $"{FirstName.ToLower()}.{LastName.ToLower()}";
+
+    protected override void OnInitialized()
+    {
+        if (AuthService.CurrentUser == null)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+    }
 
     private void SaveChanges()
     {

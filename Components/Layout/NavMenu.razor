@@ -1,5 +1,7 @@
-﻿@using FacebookLike.Service
+﻿@rendermode InteractiveServer
+@using FacebookLike.Service
 @inject IAuthService AuthService
+@inject NavigationManager navigationManager
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -25,7 +27,7 @@
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
-                    <div class="nav-link">
+                    <div class="nav-link" @onclick="Logout">
                         <span class="bi bi-person-circle-nav-menu" aria-hidden="true"></span> Logout
                     </div>
                 </div>
@@ -44,5 +46,6 @@
     private void Logout()
     {
         AuthService.Logout();
+        navigationManager.NavigateTo("/login");
     }
 }
