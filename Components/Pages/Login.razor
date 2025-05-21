@@ -14,7 +14,7 @@
             </div>
 
             <div class="login-form">
-                <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                <EditForm Model="@loginModel" OnValidSubmit="HandleLogin" formname="LoginForm">
                     <DataAnnotationsValidator/>
                     @if (!string.IsNullOrEmpty(errorMessage))
                     {
@@ -63,7 +63,7 @@
         var user = await AuthService.Authenticate(loginModel.Username, loginModel.Password);
         if (user != null)
         {
-            NavigationManager.NavigateTo("/",true);
+            NavigationManager.NavigateTo("/");
         }
         else
         {

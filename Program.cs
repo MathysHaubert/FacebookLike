@@ -8,7 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents(options =>
+    {
+        options.DetailedErrors = true;
+    });
 
 builder.Services.AddFacebookLikeServices();
 builder.Services.AddNeo4jDatabase(builder.Configuration);
@@ -31,7 +34,6 @@ else
     var seeder = new InitSeeder(userRepository, userRelationRepository, postRepository);
     await seeder.SeedAsync();
 }
-
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
