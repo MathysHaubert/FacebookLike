@@ -52,4 +52,15 @@ public class UserRepository(IGraphClient client)
         user.Password = PasswordEncoder.Encode(user.Password);
         await client.Cypher.Create("(u:User $user)").WithParam("user", user).ExecuteWithoutResultsAsync();
     }
+
+    public async Task Update(User user)
+    {
+        await client.Cypher
+            .Match("(u:User)")
+            .Where((User u) => u.Id == user.Id)
+            .Set("u = $user")
+            .WithParam("user", user)
+            .ExecuteWithoutResultsAsync();
+    }
+
 } 

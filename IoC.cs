@@ -11,8 +11,9 @@ namespace FacebookLike
             services.AddSingleton<UserRepository>();
             services.AddSingleton<UserRelationRepository>();
             services.AddSingleton<PostRepository>();
-
             services.AddSingleton<IAuthService, AuthService>();
+
+            services.AddScoped<IUserService, UserService>();
             services.AddScoped<IPostService, PostService>();
           
             return services;

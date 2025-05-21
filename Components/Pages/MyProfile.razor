@@ -1,4 +1,10 @@
 ﻿@page "/my-profile"
+@rendermode InteractiveServer
+@using FacebookLike.Neo4j.Node
+@using FacebookLike.Service
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject IUserService UserService
 
 <div class="container mt-5">
     <div class="card shadow">
@@ -6,49 +12,132 @@
             <h2 class="card-title mb-4">Mon Profil</h2>
 
             <div class="d-flex align-items-center mb-4">
-                <img src="https://api.dicebear.com/9.x/dylan/svg" class="rounded-circle border me-3" alt="Avatar" width="100" height="100" />
+                <img src="https://api.dicebear.com/9.x/dylan/svg?seed=@user.FirstName"
+                     class="rounded-circle border me-3" alt="Avatar" width="100" height="100"/>
                 <div>
-                    <h5 class="mb-0">@UserName</h5>
-                    <small class="text-muted">user@email.com</small>
+                    <h5 class="mb-0">@user.Username</h5>
+                    <small class="text-muted">@user.Email</small>
                 </div>
             </div>
 
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Prénom</label>
-                    <input type="text" class="form-control" @bind="FirstName" />
+                    <input type="text" class="form-control" @bind="user.FirstName"/>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Nom</label>
-                    <input type="text" class="form-control" @bind="LastName" />
+                    <input type="text" class="form-control" @bind="user.LastName"/>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Email</label>
-                    <input type="email" class="form-control" @bind="Email" />
+                    <input type="email" class="form-control" @bind="user.Email"/>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Téléphone</label>
-                    <input type="tel" class="form-control" @bind="Phone" />
+                    <label class="form-label">Sexe</label>
+                    <select class="form-select" @bind="user.Gender">
+                        @foreach (var option in GetGenderOptions())
+                        {
+                            <option value="@option">@option</option>
+                        }
+                    </select>
                 </div>
+
             </div>
 
             <div class="mt-4">
-                <button class="btn btn-primary" @onclick="SaveChanges">Sauvegarder</button>
+                <button type="button" class="@GetButtonClass()" @onclick="SaveChanges">
+                @if (isLoading)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> @:Enregistrement...
+                }
+                else
+                {
+                    @:Sauvegarder
+                }
+                </button>
+                @if (message != null)
+                {
+                    <p class="mt-2 text-success">@message</p>
+                }
             </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Vos Posts</h2>
+
+
         </div>
     </div>
 </div>
 
 @code {
-    private string FirstName { get; set; } = "Jean";
-    private string LastName { get; set; } = "Dupont";
-    private string Email { get; set; } = "jean.dupont@email.com";
-    private string Phone { get; set; } = "0600000000";
-    private string UserName => $"{FirstName.ToLower()}.{LastName.ToLower()}";
+    private User? user;
+    private bool isLoading = false;
+    private bool isSuccess = false;
+    private string? message;
 
-    private void SaveChanges()
+    protected override void OnInitialized()
     {
-        // Ici, tu peux appeler ton service ou API pour sauvegarder les données
-        Console.WriteLine("Profil mis à jour !");
+        if (AuthService.CurrentUser == null)
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        user = AuthService.CurrentUser;
     }
+
+    private List<string> GetGenderOptions()
+    {
+        var allOptions = new List<string> { "Homme", "Femme", "Non renseigné" };
+
+        return user.Gender switch
+        {
+            "Homme" => allOptions.Where(g => g != "Homme").ToList(),
+            "Femme" => allOptions.Where(g => g != "Femme").ToList(),
+            _ => allOptions
+        };
+    }
+
+
+    private async Task SaveChanges()
+    {
+        if (user == null)
+            return;
+
+        isLoading = true;
+        isSuccess = false;
+        message = null;
+
+        try
+        {
+            await UserService.UpdateUserAsync(user);
+            message = "Profil mis à jour avec succès !";
+            isSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            message = $"Erreur : {ex.Message}";
+            isSuccess = false;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetButtonClass()
+    {
+        if (isSuccess)
+            return "btn btn-success";
+        return "btn btn-primary";
+    }
+
+
 }
