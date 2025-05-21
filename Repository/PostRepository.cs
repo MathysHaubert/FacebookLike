@@ -1,5 +1,6 @@
 using FacebookLike.Models;
 using FacebookLike.Neo4j.Node;
+using FacebookLike.Repository;
 using Neo4jClient;
 
 namespace FacebookLike.Service.Neo4jService;
@@ -35,5 +36,33 @@ public class PostRepository
             .ResultsAsync;
 
         return result.Select(x => x.Post).ToList();
+    }
+
+    public async Task<List<PostWithAuthor>> GetPostsByAuthorsAsync(List<string> authorIds, int skip, int take, string currentUserId)
+    {
+        if (authorIds == null || authorIds.Count == 0) return new List<PostWithAuthor>();
+        var result = await _client.Cypher
+            .Match("(u:User)-[:WROTE]->(p:Post)")
+            .Where("u.Id IN $authorIds")
+            .WithParam("authorIds", authorIds)
+            .Return((u, p) => new {
+                Post = p.As<Post>(),
+                Author = u.As<User>()
+            })
+            .OrderByDescending("p.CreatedAt")
+            .Skip(skip)
+            .Limit(take)
+            .ResultsAsync;
+        var posts = result.Select(x => new PostWithAuthor { Post = x.Post, Author = x.Author }).ToList();
+        // Pour chaque post, on va chercher le nombre de likes, de commentaires et le statut like
+        var likeRepo = new LikeRepository(_client);
+        var commentRepo = new CommentRepository(_client);
+        foreach (var p in posts)
+        {
+            p.LikesCount = await likeRepo.GetLikesCountByPost(p.Post.Id);
+            p.CommentsCount = await commentRepo.GetCommentsCountByPost(p.Post.Id);
+            p.IsLikedByUser = !string.IsNullOrEmpty(currentUserId) && await likeRepo.HasUserLiked(p.Post.Id, currentUserId);
+        }
+        return posts;
     }
 }

@@ -11,10 +11,13 @@ namespace FacebookLike
             services.AddSingleton<UserRepository>();
             services.AddSingleton<UserRelationRepository>();
             services.AddSingleton<PostRepository>();
+            services.AddSingleton<CommentRepository>();
+            services.AddSingleton<LikeRepository>();
             services.AddSingleton<IAuthService, AuthService>();
 
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IPostService, PostService>();
+            services.AddScoped<ICommentService, CommentService>();
           
             return services;
         }
