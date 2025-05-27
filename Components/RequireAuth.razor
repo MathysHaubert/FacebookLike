@@ -1,0 +1,21 @@
+﻿@using FacebookLike.Service
+@inject AuthorizationHandler AuthHandler
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Ensure the user is authenticated before rendering the child content
+            AuthHandler.EnsureAuthenticated();
+        }
+    }
+}
+
+@if (AuthHandler._authService.CurrentUser != null)
+{
+    @ChildContent
+}

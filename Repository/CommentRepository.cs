@@ -2,6 +2,7 @@ using FacebookLike.Models;
 using Neo4jClient;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using FacebookLike.Neo4j.Node;
 
 namespace FacebookLike.Repository
 {
@@ -24,20 +25,27 @@ namespace FacebookLike.Repository
                 CreatedAt = DateTime.Now
             };
             await _client.Cypher
-                .Match("(u:User {Id: $userId}), (p:Post {Id: $postId})")
+                .Match("(u:User {Id: $userId})", "(p:Post {Id: $postId})")
                 .WithParam("userId", userId)
                 .WithParam("postId", postId)
-                .Create("(c:Comment $comment)<-[:WROTE]-(u)-[:COMMENTED]->(p)")
+                .Create("(c:Comment $comment)")
+                .Create("(u)-[:WROTE]->(c)")
+                .Create("(c)-[:COMMENTED]->(p)")
                 .WithParam("comment", comment)
                 .ExecuteWithoutResultsAsync();
         }
 
-        public async Task<List<Comment>> GetCommentsByPost(string postId)
+        public async Task<List<CommentDetails>> GetCommentsByPost(string postId)
         {
             var result = await _client.Cypher
-                .Match("(p:Post {Id: $postId})<-[:COMMENTED]-(u:User)-[:WROTE]->(c:Comment)")
+                .Match("(p:Post {Id: $postId})<-[:COMMENTED]-(c:Comment)<-[:WROTE]-(u:User)")
                 .WithParam("postId", postId)
-                .Return((c, u) => c.As<Comment>())
+                .Return((c, u) => new CommentDetails
+                {
+                    Comment = c.As<Comment>(),
+                    Author = u.As<User>()
+                })
+                .OrderBy("c.CreatedAt")
                 .ResultsAsync;
             return result.ToList();
         }
@@ -45,11 +53,11 @@ namespace FacebookLike.Repository
         public async Task<long> GetCommentsCountByPost(string postId)
         {
             var result = await _client.Cypher
-                .Match("(p:Post {Id: $postId})<-[:COMMENTED]-(u:User)-[:WROTE]->(c:Comment)")
+                .Match("(c:Comment)-[:COMMENTED]->(p:Post {Id: $postId})")
                 .WithParam("postId", postId)
                 .Return(c => c.Count())
                 .ResultsAsync;
             return result.SingleOrDefault();
         }
     }
-} 
+}

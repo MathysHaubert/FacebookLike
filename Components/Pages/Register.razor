@@ -1,7 +1,6 @@
 @page "/register"
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
-@using FacebookLike.Service
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 
@@ -80,15 +79,6 @@
 @code {
     private RegisterModel registerModel = new();
     private string errorMessage = string.Empty;
-
-    protected override void OnInitialized()
-    {
-        if (AuthService.CurrentUser != null)
-        {
-            NavigationManager.NavigateTo("/");
-            return;
-        }
-    }
 
     private async Task HandleRegister()
     {

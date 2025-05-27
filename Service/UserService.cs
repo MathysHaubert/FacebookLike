@@ -1,12 +1,12 @@
-    using FacebookLike.Neo4j.Node;
-    using FacebookLike.Repository;
+using FacebookLike.Neo4j.Node;
+using FacebookLike.Repository;
 
-    namespace FacebookLike.Service;
+namespace FacebookLike.Service;
 
-    public class UserService(UserRepository userRepository) : IUserService
+public class UserService(UserRepository userRepository) : IUserService
+{
+    public async Task UpdateUserAsync(User user)
     {
-        public async Task UpdateUserAsync(User user)
-        {
-            await userRepository.Update(user);
-        }
+        await userRepository.Update(user);
     }
+}

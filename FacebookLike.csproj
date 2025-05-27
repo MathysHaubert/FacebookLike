@@ -10,11 +10,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Neo4j\data\" />
-      <Folder Include="Neo4j\logs\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <PackageReference Include="Neo4j.Driver" Version="5.1.0" />
       <PackageReference Include="Neo4jClient" Version="5.1.20" />
     </ItemGroup>

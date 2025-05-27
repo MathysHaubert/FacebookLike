@@ -1,7 +1,6 @@
 @page "/login"
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
-@using FacebookLike.Service
 @inject NavigationManager NavigationManager
 @inject IAuthService AuthService
 
@@ -49,22 +48,18 @@
 @code {
     private LoginModel loginModel = new();
     private string errorMessage = string.Empty;
-
-    protected override void OnInitialized()
-    {
-        if (AuthService.CurrentUser != null)
-        {
-            NavigationManager.NavigateTo("/");
-            return;
-        }
-    }
-
+    
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+    
     private async Task HandleLogin()
     {
         var user = await AuthService.Authenticate(loginModel.Username, loginModel.Password);
         if (user != null)
         {
-            NavigationManager.NavigateTo("/");
+            var returnUrl = ReturnUrl ?? "/";
+            NavigationManager.NavigateTo(returnUrl, forceLoad: true);
         }
         else
         {
