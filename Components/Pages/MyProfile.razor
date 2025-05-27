@@ -4,77 +4,79 @@
 @using FacebookLike.Neo4j.Node
 @inject IAuthService AuthService
 @inject IUserService UserService
-@inject NavigationManager Navigation
 
-<div class="container mt-5">
-    <div class="card shadow">
-        <div class="card-body">
-            <h2 class="card-title mb-4">Mon Profil</h2>
+<RequireAuth>
+    <div class="container mt-5">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Mon Profil</h2>
 
-            <div class="d-flex align-items-center mb-4">
-                <img src="https://api.dicebear.com/9.x/dylan/svg?seed=@user.FirstName"
-                     class="rounded-circle border me-3" alt="Avatar" width="100" height="100"/>
-                <div>
-                    <h5 class="mb-0">@user.Username</h5>
-                    <small class="text-muted">@user.Email</small>
+                <div class="d-flex align-items-center mb-4">
+                    <img src="https://api.dicebear.com/9.x/dylan/svg?seed=@user.FirstName"
+                         class="rounded-circle border me-3" alt="Avatar" width="100" height="100"/>
+                    <div>
+                        <h5 class="mb-0">@user.Username</h5>
+                        <small class="text-muted">@user.Email</small>
+                    </div>
                 </div>
-            </div>
 
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Prénom</label>
-                    <input type="text" class="form-control" @bind="user.FirstName"/>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Prénom</label>
+                        <input type="text" class="form-control" @bind="user.FirstName"/>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Nom</label>
+                        <input type="text" class="form-control" @bind="user.LastName"/>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" @bind="user.Email"/>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Sexe</label>
+                        <select class="form-select" @bind="user.Gender">
+                            @foreach (var option in GetGenderOptions())
+                            {
+                                <option value="@option">@option</option>
+                            }
+                        </select>
+                    </div>
+
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Nom</label>
-                    <input type="text" class="form-control" @bind="user.LastName"/>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Email</label>
-                    <input type="email" class="form-control" @bind="user.Email"/>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Sexe</label>
-                    <select class="form-select" @bind="user.Gender">
-                        @foreach (var option in GetGenderOptions())
+
+                <div class="mt-4">
+                    <button type="button" class="@GetButtonClass()" @onclick="SaveChanges">
+                        @if (isLoading)
                         {
-                            <option value="@option">@option</option>
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            @:Enregistrement...
                         }
-                    </select>
+                        else
+                        {
+                            @:Sauvegarder
+                        }
+                    </button>
+                    @if (message != null)
+                    {
+                        <p class="mt-2 text-success">@message</p>
+                    }
                 </div>
 
             </div>
+        </div>
+    </div>
 
-            <div class="mt-4">
-                <button type="button" class="@GetButtonClass()" @onclick="SaveChanges">
-                @if (isLoading)
-                {
-                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> @:Enregistrement...
-                }
-                else
-                {
-                    @:Sauvegarder
-                }
-                </button>
-                @if (message != null)
-                {
-                    <p class="mt-2 text-success">@message</p>
-                }
+    <div class="container mt-5">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Vos Posts</h2>
+
+
             </div>
-
         </div>
     </div>
-</div>
-
-<div class="container mt-5">
-    <div class="card shadow">
-        <div class="card-body">
-            <h2 class="card-title mb-4">Vos Posts</h2>
-
-
-        </div>
-    </div>
-</div>
+</RequireAuth>
 
 @code {
     private User? user;
@@ -84,12 +86,6 @@
 
     protected override void OnInitialized()
     {
-        if (AuthService.CurrentUser == null)
-        {
-            Navigation.NavigateTo("/login", forceLoad: true);
-            return;
-        }
-
         user = AuthService.CurrentUser;
     }
 

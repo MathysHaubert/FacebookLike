@@ -1,6 +1,6 @@
 ﻿using FacebookLike.Neo4j.Node;
 
-namespace FacebookLike.Service;
+namespace FacebookLike.Service.Security;
 
 public interface IAuthService
 {

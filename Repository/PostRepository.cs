@@ -38,9 +38,9 @@ public class PostRepository
         return result.Select(x => x.Post).ToList();
     }
 
-    public async Task<List<PostWithAuthor>> GetPostsByAuthorsAsync(List<string> authorIds, int skip, int take, string currentUserId)
+    public async Task<List<PostDetails>> GetPostsByAuthorsAsync(List<string> authorIds, int skip, int take, string currentUserId)
     {
-        if (authorIds == null || authorIds.Count == 0) return new List<PostWithAuthor>();
+        if (authorIds == null || authorIds.Count == 0) return new List<PostDetails>();
         var result = await _client.Cypher
             .Match("(u:User)-[:WROTE]->(p:Post)")
             .Where("u.Id IN $authorIds")
@@ -53,7 +53,7 @@ public class PostRepository
             .Skip(skip)
             .Limit(take)
             .ResultsAsync;
-        var posts = result.Select(x => new PostWithAuthor { Post = x.Post, Author = x.Author }).ToList();
+        var posts = result.Select(x => new PostDetails { Post = x.Post, Author = x.Author }).ToList();
         // Pour chaque post, on va chercher le nombre de likes, de commentaires et le statut like
         var likeRepo = new LikeRepository(_client);
         var commentRepo = new CommentRepository(_client);

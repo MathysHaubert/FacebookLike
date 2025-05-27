@@ -1,6 +1,7 @@
 using FacebookLike.Repository;
 using FacebookLike.Service;
 using FacebookLike.Service.Neo4jService;
+using FacebookLike.Service.Security;
 
 namespace FacebookLike
 {
@@ -14,6 +15,7 @@ namespace FacebookLike
             services.AddSingleton<CommentRepository>();
             services.AddSingleton<LikeRepository>();
             services.AddSingleton<IAuthService, AuthService>();
+            services.AddScoped<AuthorizationHandler>();
 
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IPostService, PostService>();

@@ -3,6 +3,7 @@
 @using FacebookLike.Models
 @using FacebookLike.Neo4j.Node
 @using FacebookLike.Service
+@using FacebookLike.Service.Security
 @inject IPostService PostService
 @inject IAuthService AuthService
 @inject ICommentService CommentService
@@ -10,7 +11,7 @@
 @inject NavigationManager NavigationManager
 
 <script src="/js/infiniteScroll.js"></script>
-
+<RequireAuth>
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-md-8">
@@ -99,10 +100,12 @@
                                         }
                                         else
                                         {
-                                            @foreach (var comment in postWithAuthor.Comments)
+                                            @foreach (var commentAuthor in postWithAuthor.Comments)
                                             {
+                                                var comment = commentAuthor.Comment;
+                                                var authorComment = commentAuthor.Author;
                                                 <div class="mb-2">
-                                                    <b>@comment.AuthorId</b> <span class="text-muted small">@comment.CreatedAt.ToString("g")</span><br />
+                                                    <b>@authorComment.FirstName</b> <b>@authorComment.LastName</b> <span class="text-muted small">@comment.CreatedAt.ToString("g")</span><br />
                                                     @comment.Content
                                                 </div>
                                             }
@@ -135,9 +138,10 @@
         </div>
     </div>
 </div>
+</RequireAuth>
 
 @code {
-    private List<PostWithAuthor> _posts = new();
+    private List<PostDetails> _posts = new();
     private int _page = 1;
     private const int PageSize = 20;
     private bool _isLoading = false;
@@ -148,11 +152,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (AuthService.CurrentUser == null)
-        {
-            NavigationManager.NavigateTo("/login");
-            return;
-        }
         await LoadMorePosts();
     }
 
@@ -209,21 +208,27 @@
         await LoadMorePosts();
     }
 
-    private async Task ToggleComments(PostWithAuthor postWithAuthor)
+    private async Task ToggleComments(PostDetails postDetails)
     {
-        var postId = postWithAuthor.Post.Id;
+        var postId = postDetails.Post.Id;
         if (!_commentsOpen.ContainsKey(postId) || !_commentsOpen[postId])
         {
             _commentsOpen[postId] = true;
-            if (postWithAuthor.Comments.Count == 0 && !_loadingComments.ContainsKey(postId))
+            if (postDetails.Comments.Count == 0 && !_loadingComments.ContainsKey(postId))
             {
                 _loadingComments[postId] = true;
                 StateHasChanged();
 
-                postWithAuthor.Comments = await CommentService.GetCommentsByPostAsync(postId);
+                postDetails.Comments = await CommentService.GetCommentsByPostAsync(postId);
                 _loadingComments[postId] = false;
-                StateHasChanged();
             }
+            
+            if (!_newComment.ContainsKey(postId))
+            {
+                _newComment[postId] = string.Empty;
+            }
+            
+            StateHasChanged();
         }
         else
         {
@@ -231,16 +236,16 @@
         }
     }
 
-    private async Task AddComment(PostWithAuthor postWithAuthor)
+    private async Task AddComment(PostDetails postDetails)
     {
-        var postId = postWithAuthor.Post.Id;
+        var postId = postDetails.Post.Id;
         var content = _newComment.ContainsKey(postId) ? _newComment[postId] : string.Empty;
         if (string.IsNullOrWhiteSpace(content)) return;
         var user = AuthService.CurrentUser;
         if (user == null) return;
         await CommentService.AddCommentAsync(postId, user.Id, content);
-        postWithAuthor.Comments = await CommentService.GetCommentsByPostAsync(postId);
-        postWithAuthor.CommentsCount = postWithAuthor.Comments.Count;
+        postDetails.Comments = await CommentService.GetCommentsByPostAsync(postId);
+        postDetails.CommentsCount = postDetails.Comments.Count;
         _newComment[postId] = string.Empty;
         StateHasChanged();
     }

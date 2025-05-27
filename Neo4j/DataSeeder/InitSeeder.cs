@@ -1,18 +1,35 @@
-using FacebookLike.Models;
 using FacebookLike.Neo4j.Node;
 using FacebookLike.Repository;
 using FacebookLike.Service.Neo4jService;
-using Microsoft.Extensions.Logging;
 
 namespace FacebookLike.Neo4j.DataSeeder;
 
-public class InitSeeder(UserRepository userRepository, UserRelationRepository userRelationRepository, PostRepository postRepository, DataSeederUtils dataSeederUtils, CommentRepository commentRepository, LikeRepository likeRepository, ILogger<InitSeeder> logger)
+public class InitSeeder
 {
+    private readonly UserRepository _userRepository;
+    private readonly UserRelationRepository _userRelationRepository;
+    private readonly PostRepository _postRepository;
+    private readonly DataSeederUtils _dataSeederUtils;
+    private readonly CommentRepository _commentRepository;
+    private readonly LikeRepository _likeRepository;
+    private readonly ILogger<InitSeeder> _logger;
+
+    public InitSeeder(UserRepository userRepository, UserRelationRepository userRelationRepository, PostRepository postRepository, DataSeederUtils dataSeederUtils, CommentRepository commentRepository, LikeRepository likeRepository, ILogger<InitSeeder> logger)
+    {
+        _userRepository = userRepository;
+        _userRelationRepository = userRelationRepository;
+        _postRepository = postRepository;
+        _dataSeederUtils = dataSeederUtils;
+        _commentRepository = commentRepository;
+        _likeRepository = likeRepository;
+        _logger = logger;
+    }
+
     public async Task SeedAsync()
     {
-        logger.LogInformation("[Seeder] Starting seed...");
-        if (await dataSeederUtils.GetCount() > 100) {
-            logger.LogInformation("[Seeder] Data already present, seed cancelled.");
+        _logger.LogInformation("[Seeder] Starting seed...");
+        if (await _dataSeederUtils.GetCount() > 100) {
+            _logger.LogInformation("[Seeder] Data already present, seed cancelled.");
             return;
         }
         
@@ -36,10 +53,10 @@ public class InitSeeder(UserRepository userRepository, UserRelationRepository us
             DateOfBirth = new DateOnly(1988, 5, 20)
         };
      
-        logger.LogInformation("[Seeder] Creating main users...");
-        await userRepository.Create(alice);
-        await userRepository.Create(bob);
-        await userRelationRepository.CreateFriendship("alice", "bob");
+        _logger.LogInformation("[Seeder] Creating main users...");
+        await _userRepository.Create(alice);
+        await _userRepository.Create(bob);
+        await _userRelationRepository.CreateFriendship("alice", "bob");
 
         // Création de posts liés aux users
         var post1 = new Post {
@@ -63,12 +80,12 @@ public class InitSeeder(UserRepository userRepository, UserRelationRepository us
             ImageUrl = "https://source.unsplash.com/random/800x600?mountain",
             CreatedAt = DateTime.Now.AddHours(-8),
         };
-        await postRepository.Create(post1);
-        await postRepository.Create(post2);
-        await postRepository.Create(post3);
+        await _postRepository.Create(post1);
+        await _postRepository.Create(post2);
+        await _postRepository.Create(post3);
 
         // Génération de 100 utilisateurs aléatoires
-        logger.LogInformation("[Seeder] Generating random users...");
+        _logger.LogInformation("[Seeder] Generating random users...");
         var random = new Random();
         var firstNames = new[] { "Jean", "Marie", "Luc", "Sophie", "Paul", "Julie", "Antoine", "Emma", "Louis", "Chloe", "Lucas", "Lina", "Hugo", "Lea", "Nathan", "Manon", "Tom", "Sarah", "Leo", "Camille" };
         var lastNames = new[] { "Martin", "Bernard", "Thomas", "Petit", "Robert", "Richard", "Durand", "Dubois", "Moreau", "Laurent", "Simon", "Michel", "Lefebvre", "Leroy", "Roux", "David", "Bertrand", "Morel", "Fournier", "Girard" };
@@ -92,14 +109,14 @@ public class InitSeeder(UserRepository userRepository, UserRelationRepository us
                 Gender = gender,
                 DateOfBirth = new DateOnly(1980 + random.Next(20), random.Next(1, 13), random.Next(1, 28))
             };
-            await userRepository.Create(user);
+            await _userRepository.Create(user);
             users.Add(user);
-            if (i % 5 == 0) logger.LogInformation($"[Seeder] User {i+1}/{userCount} created");
+            if (i % 5 == 0) _logger.LogInformation($"[Seeder] User {i+1}/{userCount} created");
         }
         
         
         // Amitiés aléatoires entre les 100 users
-        logger.LogInformation("[Seeder] Creating friendships...");
+        _logger.LogInformation("[Seeder] Creating friendships...");
         for (int i = 0; i < users.Count; i++)
         {
             var userA = users[i];
@@ -113,12 +130,12 @@ public class InitSeeder(UserRepository userRepository, UserRelationRepository us
             foreach (var idx in friendIndexes)
             {
                 var userB = users[idx];
-                await userRelationRepository.CreateFriendship(userA.Username, userB.Username);
+                await _userRelationRepository.CreateFriendship(userA.Username, userB.Username);
             }
-            if (i % 5 == 0) logger.LogInformation($"[Seeder] Friendships for user {i+1}/{users.Count}");
+            if (i % 5 == 0) _logger.LogInformation($"[Seeder] Friendships for user {i+1}/{users.Count}");
         }
         // 10 posts par utilisateur
-        logger.LogInformation("[Seeder] Creating posts...");
+        _logger.LogInformation("[Seeder] Creating posts...");
         var postContents = new[]
         {
             "✨ Un super moment aujourd'hui avec mes amis ! On a passé l'après-midi à se promener dans le parc et à prendre des photos. Les souvenirs qu'on crée ensemble sont vraiment précieux. 📸",
@@ -146,11 +163,11 @@ public class InitSeeder(UserRepository userRepository, UserRelationRepository us
                     ImageUrl = $"https://source.unsplash.com/random/800x600?sig={random.Next(10000)}",
                     CreatedAt = DateTime.Now.AddMinutes(-random.Next(10000))
                 };
-                await postRepository.Create(post);
+                await _postRepository.Create(post);
                 allPosts.Add(post);
             }
         }
-        logger.LogInformation("[Seeder] Adding comments and likes to posts...");
+        _logger.LogInformation("[Seeder] Adding comments and likes to posts...");
         int postIdx = 0;
         foreach (var post in allPosts)
         {
@@ -160,7 +177,7 @@ public class InitSeeder(UserRepository userRepository, UserRelationRepository us
             {
                 var commenter = users[random.Next(users.Count)];
                 var commentContent = $"Commentaire automatique {c+1} sur le post {post.Id}";
-                await commentRepository.AddComment(post.Id, commenter.Id, commentContent);
+                await _commentRepository.AddComment(post.Id, commenter.Id, commentContent);
             }
             // Ajout de likes
             int nbLikes = random.Next(0, users.Count / 6); // jusqu'à la moitié des users
@@ -172,11 +189,11 @@ public class InitSeeder(UserRepository userRepository, UserRelationRepository us
             foreach (var idx in likedIndexes)
             {
                 var liker = users[idx];
-                await likeRepository.AddLike(post.Id, liker.Id);
+                await _likeRepository.AddLike(post.Id, liker.Id);
             }
             postIdx++;
-            if (postIdx % 10 == 0) logger.LogInformation($"[Seeder] {postIdx}/{allPosts.Count} posts processed for comments/likes");
+            if (postIdx % 10 == 0) _logger.LogInformation($"[Seeder] {postIdx}/{allPosts.Count} posts processed for comments/likes");
         }
-        logger.LogInformation("[Seeder] Seed finished!");
+        _logger.LogInformation("[Seeder] Seed finished!");
     }
 }
