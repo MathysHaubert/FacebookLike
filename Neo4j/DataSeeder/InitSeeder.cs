@@ -63,21 +63,18 @@ public class InitSeeder
             Id = Guid.NewGuid().ToString(),
             AuthorId = alice.Id,
             Content = "Juste un magnifique coucher de soleil ce soir ! 🌅 #nature #beauté",
-            ImageUrl = "https://source.unsplash.com/random/800x600?sunset",
             CreatedAt = DateTime.Now.AddHours(-2),
         };
         var post2 = new Post {
             Id = Guid.NewGuid().ToString(),
             AuthorId = bob.Id,
             Content = "Mon nouveau projet de développement est en cours ! #coding #webdev",
-            ImageUrl = "https://source.unsplash.com/random/800x600?coding",
             CreatedAt = DateTime.Now.AddHours(-5),
         };
         var post3 = new Post {
             Id = Guid.NewGuid().ToString(),
             AuthorId = alice.Id,
             Content = "Première randonnée de l'année ! Les paysages sont incroyables 🏔️",
-            ImageUrl = "https://source.unsplash.com/random/800x600?mountain",
             CreatedAt = DateTime.Now.AddHours(-8),
         };
         await _postRepository.Create(post1);
@@ -160,7 +157,6 @@ public class InitSeeder
                     Id = Guid.NewGuid().ToString(),
                     AuthorId = user.Id,
                     Content = postContents[random.Next(postContents.Length)],
-                    ImageUrl = $"https://source.unsplash.com/random/800x600?sig={random.Next(10000)}",
                     CreatedAt = DateTime.Now.AddMinutes(-random.Next(10000))
                 };
                 await _postRepository.Create(post);

@@ -1,0 +1,121 @@
+@using FacebookLike.Neo4j.Node
+<EditForm Model="NewPost" OnValidSubmit="HandleValidSubmit">
+    <div class="d-flex align-items-center mb-3">
+        <ProfileImage User="CurrentUser" clazz="me-2"/>
+        <InputText class="form-control" placeholder="Quoi de neuf ?" @bind-Value="NewPost.Content"
+                   @oninput="HandleInputText"/>
+    </div>
+    @if (HasInput)
+    {
+        @if (!string.IsNullOrEmpty(NewPost.ImagePreviewUrl))
+        {
+            <div>
+                <span class="text-muted">Selected Image : @NewPost.ImageName</span>
+                <div class="position-relative">
+                    <img src="@NewPost.ImagePreviewUrl" class="img-fluid rounded mt-2"
+                         alt="@NewPost.ImageName"/>
+                    <button type="button" class="btn btn-sm btn-danger position-absolute end-0 m-2 me-2"
+                            @onclick="RemoveImage" style="z-index:2; top: 5px;">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="custom-image-upload w-100 d-flex flex-column align-items-center justify-content-center mb-1">
+                <label class="upload-label w-100 d-flex flex-column align-items-center justify-content-center">
+                    <i class="bi bi-image" style="font-size: 2.5rem; color: #6c757d;"></i>
+                    <span class="mt-2 text-muted">Add an image</span>
+                    <InputFile class="d-none" OnChange="OnImageSelected" accept="image/*"/>
+                </label>
+            </div>
+        }
+        <button class="btn btn-primary w-100 mb-3" type="submit" disabled="@(string.IsNullOrWhiteSpace(NewPost.Content) || isCreating)"> 
+            @if (isCreating)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span>Posting...</span>
+            }
+            else
+            {
+                <span>Post</span>
+            }
+        </button>
+    }
+
+</EditForm>
+
+<style>
+    .custom-image-upload {
+        border: 2px dashed #ced4da;
+        border-radius: 12px;
+        min-height: 120px;
+        background: #f8f9fa;
+        cursor: pointer;
+        transition: border-color 0.2s;
+    }
+
+    .custom-image-upload:hover {
+        border-color: #0d6efd;
+    }
+
+    .upload-label {
+        height: 100%;
+        width: 100%;
+        cursor: pointer;
+        padding: 32px 0;
+    }
+</style>
+
+@code {
+    [Parameter] public User CurrentUser { get; set; }
+    [Parameter] public EventCallback<Models.PostCreate> OnCreatePost { get; set; }
+    public Models.PostCreate NewPost { get; set; } = new();
+    public bool HasInput { get; set; }
+    private bool isCreating = false;
+
+    private void HandleInputText(ChangeEventArgs e)
+    {
+        HasInput = !string.IsNullOrWhiteSpace(e.Value?.ToString());
+    }
+
+    private async Task OnImageSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+
+        if (file != null)
+        {
+            // 10 Mo max
+            await using var inputStream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await inputStream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+
+            NewPost.ImageStream = new MemoryStream(bytes);
+            NewPost.ImageName = file.Name;
+            NewPost.ImagePreviewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(bytes)}";
+        }
+    }
+
+    private void RemoveImage()
+    {
+        NewPost.ImageStream = null;
+        NewPost.ImageName = null;
+        NewPost.ImagePreviewUrl = null;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(NewPost.Content) && NewPost.ImageStream == null)
+            return;
+        isCreating = true;
+        StateHasChanged();
+        await OnCreatePost.InvokeAsync(NewPost);
+        NewPost = new Models.PostCreate();
+        HasInput = false;
+        isCreating = false;
+        StateHasChanged();
+    }
+
+} 

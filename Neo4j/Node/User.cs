@@ -11,5 +11,6 @@ public class User
     public required string LastName { get; set; } = string.Empty;
     public required string Gender { get; set; } = string.Empty;
     public DateOnly DateOfBirth { get; set; }
-    
+
+    public string ProfileImageUrl { get; set; }
 }

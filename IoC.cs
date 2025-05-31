@@ -1,5 +1,6 @@
 using FacebookLike.Repository;
 using FacebookLike.Service;
+using FacebookLike.Service.GoogleCloud;
 using FacebookLike.Service.Neo4jService;
 using FacebookLike.Service.Security;
 
@@ -15,6 +16,7 @@ namespace FacebookLike
             services.AddSingleton<CommentRepository>();
             services.AddSingleton<LikeRepository>();
             services.AddSingleton<IAuthService, AuthService>();
+            services.AddSingleton<StorageService>();
             services.AddScoped<AuthorizationHandler>();
 
             services.AddScoped<IUserService, UserService>();
