@@ -9,24 +9,44 @@
     <div class="container mt-5">
         <div class="card shadow">
             <div class="card-body">
-                <h2 class="card-title mb-4">Mon Profil</h2>
+                <h2 class="card-title mb-4 d-flex align-items-center">
+                    My Profile
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm ms-3" role="status" aria-hidden="true"></span>
+                    }
+                </h2>
 
                 <div class="d-flex align-items-center mb-4">
-                    <img src="https://api.dicebear.com/9.x/dylan/svg?seed=@user.FirstName"
-                         class="rounded-circle border me-3" alt="Avatar" width="100" height="100"/>
-                    <div>
-                        <h5 class="mb-0">@user.Username</h5>
-                        <small class="text-muted">@user.Email</small>
+                    <div class="position-relative" style="width: 100px; height: 100px;">
+                        <label class="w-100 h-100 m-0 p-0 d-block" style="cursor:pointer;">
+                            <InputFile type="file" accept="image/*" style="display:none;" OnChange="HandleFileSelected" />
+                            <ProfileImage User="user" Size="100" clazz="me-3 w-100 h-100" />
+
+                            @if (!string.IsNullOrEmpty(user?.ProfileImageUrl))
+                            {
+                                <button 
+                                    type="button"
+                                    class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle"
+                                    style="z-index:2;"
+                                    @onclick="RemoveProfileImage"
+                                    disabled="@isLoading">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            }
+
+                        </label>
                     </div>
                 </div>
 
+
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">Prénom</label>
+                        <label class="form-label">First Name</label>
                         <input type="text" class="form-control" @bind="user.FirstName"/>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Nom</label>
+                        <label class="form-label">Last Name</label>
                         <input type="text" class="form-control" @bind="user.LastName"/>
                     </div>
                     <div class="col-md-6">
@@ -34,7 +54,7 @@
                         <input type="email" class="form-control" @bind="user.Email"/>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Sexe</label>
+                        <label class="form-label">Gender</label>
                         <select class="form-select" @bind="user.Gender">
                             @foreach (var option in GetGenderOptions())
                             {
@@ -50,11 +70,11 @@
                         @if (isLoading)
                         {
                             <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            @:Enregistrement...
+                            @:Saving...
                         }
                         else
                         {
-                            @:Sauvegarder
+                            @:Save
                         }
                     </button>
                     @if (message != null)
@@ -70,7 +90,7 @@
     <div class="container mt-5">
         <div class="card shadow">
             <div class="card-body">
-                <h2 class="card-title mb-4">Vos Posts</h2>
+                <h2 class="card-title mb-4">Your Posts</h2>
 
 
             </div>
@@ -91,14 +111,33 @@
 
     private List<string> GetGenderOptions()
     {
-        var allOptions = new List<string> { "Homme", "Femme", "Non renseigné" };
-
-        return user.Gender switch
+        var allOptions = new List<string> { "Male", "Female", "Not specified" };
+        if (string.IsNullOrEmpty(user?.Gender) || !allOptions.Contains(user.Gender))
         {
-            "Homme" => allOptions.Where(g => g != "Homme").ToList(),
-            "Femme" => allOptions.Where(g => g != "Femme").ToList(),
-            _ => allOptions
-        };
+            return allOptions;
+        }
+        return new List<string> { user.Gender }.Concat(allOptions.Where(g => g != user.Gender)).ToList();
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        if (e.FileCount > 0)
+        {
+            isLoading = true;
+            StateHasChanged();
+            IBrowserFile newProfileImage = e.GetMultipleFiles(1).FirstOrDefault();
+            if (newProfileImage != null)
+            {
+                var stream = newProfileImage.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10 MB max
+                var imageUrl = await UserService.UploadProfileImageAsync(user.Id, stream, newProfileImage.Name);
+                if (!string.IsNullOrEmpty(imageUrl))
+                {
+                    user.ProfileImageUrl = imageUrl;
+                }
+            }
+            isLoading = false;
+            StateHasChanged();
+        }
     }
 
 
@@ -114,12 +153,12 @@
         try
         {
             await UserService.UpdateUserAsync(user);
-            message = "Profil mis à jour avec succès !";
+            message = "Profile updated successfully!";
             isSuccess = true;
         }
         catch (Exception ex)
         {
-            message = $"Erreur : {ex.Message}";
+            message = $"Error: {ex.Message}";
             isSuccess = false;
         }
         finally
@@ -135,5 +174,24 @@
         return "btn btn-primary";
     }
 
+    private async Task RemoveProfileImage()
+    {
+        if (user == null) return;
+        isLoading = true;
+        StateHasChanged();
+        user.ProfileImageUrl = null;
+        try
+        {
+            await UserService.UpdateUserAsync(user);
+            message = "Image removed.";
+        }
+        catch (Exception ex)
+        {
+            message = $"Error while removing: {ex.Message}";
+        }
+        isLoading = false;
+        StateHasChanged();
+    }
 
 }
+

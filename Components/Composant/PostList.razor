@@ -1,0 +1,40 @@
+@using FacebookLike.Models
+@using FacebookLike.Neo4j.Node
+
+@if (Posts == null || Posts.Count == 0)
+{
+    <div class="text-muted">No posts to show.</div>
+}
+else
+{
+    @foreach (var postWithAuthor in Posts)
+    {
+        <PostCard 
+            Post="postWithAuthor.Post"
+            Author="postWithAuthor.Author"
+            AuthorName="@(postWithAuthor.Author.Id == CurrentUser.Id ? "You" : $"{postWithAuthor.Author.FirstName} {postWithAuthor.Author.LastName}")"
+            LikesCount="postWithAuthor.LikesCount"
+            CommentsCount="postWithAuthor.CommentsCount"
+            IsLikedByUser="postWithAuthor.IsLikedByUser"
+            ShowComments="CommentsOpen.ContainsKey(postWithAuthor.Post.Id) && CommentsOpen[postWithAuthor.Post.Id]"
+            LoadingComments="LoadingComments.ContainsKey(postWithAuthor.Post.Id) && LoadingComments[postWithAuthor.Post.Id]"
+            Comments="postWithAuthor.Comments"
+            CurrentUser="CurrentUser"
+            NewComment="@(NewComment.TryGetValue(postWithAuthor.Post.Id, out var value) ? value : string.Empty)"
+            OnLikeClicked="() => OnLikeClicked.InvokeAsync(postWithAuthor.Post)"
+            OnToggleCommentsClicked="() => OnToggleCommentsClicked.InvokeAsync(postWithAuthor)"
+            OnAddComment="(comment) => OnAddComment.InvokeAsync((postWithAuthor, comment))"
+        />
+    }
+}
+
+@code {
+    [Parameter] public List<PostDetails> Posts { get; set; }
+    [Parameter] public User CurrentUser { get; set; }
+    [Parameter] public Dictionary<string, bool> CommentsOpen { get; set; }
+    [Parameter] public Dictionary<string, bool> LoadingComments { get; set; }
+    [Parameter] public Dictionary<string, string> NewComment { get; set; }
+    [Parameter] public EventCallback<Post> OnLikeClicked { get; set; }
+    [Parameter] public EventCallback<PostDetails> OnToggleCommentsClicked { get; set; }
+    [Parameter] public EventCallback<(PostDetails, string)> OnAddComment { get; set; }
+} 

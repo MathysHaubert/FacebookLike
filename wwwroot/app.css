@@ -49,3 +49,14 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+.like-btn .bi-heart,
+.like-btn .bi-heart-fill {
+    transition: color 0.3s ease, transform 0.2s;
+}
+.like-btn:hover .bi-heart,
+.like-btn:hover .bi-heart-fill {
+    color: #dc3545 !important;
+    transform: scale(1.15);
+}
+

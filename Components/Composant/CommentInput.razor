@@ -1,0 +1,17 @@
+<div class="input-group mt-2">
+    <input class="form-control" placeholder="Add a comment..." @bind="Value" />
+    <button class="btn btn-primary" @onclick="SendComment">Send</button>
+</div>
+
+@code {
+    [Parameter] public string Value { get; set; }
+    [Parameter] public EventCallback<string> OnSend { get; set; }
+
+    private async Task SendComment()
+    {
+        if (!string.IsNullOrWhiteSpace(Value))
+        {
+            await OnSend.InvokeAsync(Value);
+        }
+    }
+} 

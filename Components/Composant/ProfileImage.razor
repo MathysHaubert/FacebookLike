@@ -1,0 +1,28 @@
+@using FacebookLike.Neo4j.Node
+<img src="@GetImageUrl()" class="rounded-circle @clazz" width="@Size" height="@Size" alt="Profile"/>
+
+@code {
+    [Parameter] 
+    public User User { get; set; }
+    [Parameter] 
+    public int Size { get; set; } = 40;
+
+    private string GetImageUrl()
+    {
+        if (!string.IsNullOrEmpty(User?.ProfileImageUrl))
+        {
+            return User.ProfileImageUrl;
+        }
+
+        if (!string.IsNullOrEmpty(User?.FirstName) && !string.IsNullOrEmpty(User?.LastName))
+        {
+            return $"https://api.dicebear.com/9.x/adventurer/svg?seed={User.FirstName}{User.LastName}";
+        }
+
+        return "https://api.dicebear.com/9.x/adventurer/svg?seed=default";
+    }
+    
+    [Parameter]
+    public string clazz { get; set; } = "";
+}
+

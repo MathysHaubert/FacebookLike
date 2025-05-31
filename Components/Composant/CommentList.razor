@@ -1,0 +1,31 @@
+@using FacebookLike.Models
+@using FacebookLike.Neo4j.Node
+
+@if (Comments == null || Comments.Count == 0)
+{
+    <div class="text-muted">No comments yet.</div>
+}
+else
+{
+    @foreach (var commentAuthor in Comments)
+    {
+        var comment = commentAuthor.Comment;
+        var authorComment = commentAuthor.Author;
+        var authorNameComment = authorComment.Id == CurrentUser.Id ? "You" : $"{authorComment.FirstName} {authorComment.LastName}";
+        <div class="mb-2">
+            <div class="d-flex align-items-center gap-1">
+                <ProfileImage User="authorComment" />
+                <div>
+                    <b>@authorNameComment</b>
+                    <span class="text-muted small">@comment.CreatedAt.ToString("g")</span>
+                </div>
+            </div>
+            @comment.Content
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public List<CommentDetails> Comments { get; set; }
+    [Parameter] public User CurrentUser { get; set; }
+} 
