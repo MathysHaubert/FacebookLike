@@ -24,6 +24,9 @@
       <None Update="compose.yaml">
         <DependentUpon>Dockerfile</DependentUpon>
       </None>
+      <None Update="Components\Pages\PublicProfile.css">
+        <DependentUpon>PublicProfile.razor</DependentUpon>
+      </None>
     </ItemGroup>
 
     <ItemGroup>
