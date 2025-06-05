@@ -1,0 +1,32 @@
+@if (!string.IsNullOrEmpty(Url))
+{
+    <img src="@Url" class="img-fluid rounded shadow @Class" style="cursor:pointer;@Style;z-index:1;transition:box-shadow 0.2s;" @onclick="ShowModal" alt="Image preview" />
+}
+
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.7);z-index:2000;position:fixed;top:0;left:0;width:100vw;height:100vh;" @onclick="HideModal">
+        <div class="modal-dialog modal-dialog-centered modal-lg" style="z-index:2001;pointer-events:none;">
+            <div class="modal-content bg-transparent border-0 d-flex justify-content-center align-items-center" style="pointer-events:auto;">
+                <button type="button" class="btn-close btn-close-white ms-auto me-2 mt-2 position-absolute" @onclick:stopPropagation @onclick="HideModal" style="z-index:2;right:0;top:0;"></button>
+                <img src="@Url" style="max-width:70vw;max-height:80vh;border:3px solid #eee;box-shadow:0 2px 16px rgba(0,0,0,0.18);background:#222;" @onclick:stopPropagation />
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Url { get; set; }
+    [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter] public string Style { get; set; } = string.Empty;
+    private bool showModal = false;
+
+    private void ShowModal()
+    {
+        showModal = true;
+    }
+    private void HideModal()
+    {
+        showModal = false;
+    }
+} 

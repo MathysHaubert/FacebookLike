@@ -3,6 +3,8 @@
 @using FacebookLike.Neo4j.Node
 @using FacebookLike.Service
 @using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.AspNetCore.Components.Forms
+@using Components.Composant
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject IAuthService AuthService
@@ -10,142 +12,70 @@
 
 @implements IAsyncDisposable
 
-<h3>Conversation</h3>
-
-<style>
-    body, .conversation-container {
-        background: #fff !important;
-    }
-
-    .conversation-container {
-        max-width: 700px;
-        margin: 40px auto;
-        border-radius: 12px;
-        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
-        background: #fff;
-        display: flex;
-        flex-direction: column;
-        height: 80vh;
-        overflow: hidden;
-    }
-
-    .messages-list {
-        flex: 1;
-        overflow-y: auto;
-        padding: 32px 24px 16px 24px;
-        background: #fff;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .message-item {
-        display: flex;
-        flex-direction: column;
-        max-width: 60%;
-        padding: 12px 18px;
-        border-radius: 16px;
-        font-size: 1rem;
-        position: relative;
-        word-break: break-word;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-    }
-
-    .message-item.sent {
-        align-self: flex-end;
-        background: #d1f7c4;
-        color: #222;
-        border-bottom-right-radius: 4px;
-    }
-
-    .message-item.received {
-        align-self: flex-start;
-        background: #f0f0f0;
-        color: #222;
-        border-bottom-left-radius: 4px;
-    }
-
-    .message-image {
-        max-width: 220px;
-        max-height: 180px;
-        border-radius: 8px;
-        margin-bottom: 6px;
-    }
-
-    .timestamp {
-        font-size: 0.75rem;
-        color: #888;
-        margin-top: 4px;
-        align-self: flex-end;
-    }
-
-    .message-input-area {
-        display: flex;
-        align-items: center;
-        padding: 16px 24px;
-        background: #fff;
-        border-top: 1px solid #eee;
-        gap: 8px;
-    }
-
-    .message-input {
-        flex: 1;
-        border: 1px solid #ddd;
-        border-radius: 20px;
-        padding: 10px 16px;
-        font-size: 1rem;
-        resize: none;
-        min-height: 40px;
-        max-height: 120px;
-        background: #fafafa;
-        outline: none;
-    }
-
-    .icon-btn {
-        background: none;
-        border: none;
-        color: #555;
-        font-size: 1.4rem;
-        cursor: pointer;
-        padding: 6px 10px;
-        border-radius: 50%;
-        transition: background 0.2s;
-    }
-
-    .icon-btn:hover {
-        background: #f0f0f0;
-    }
-</style>
-
-<div class="conversation-container">
-    <div class="messages-list" @ref="messagesListDiv">
-        @foreach (var message in Messages)
+<div class="d-flex flex-column align-items-center">
+    <div class="conversation-header d-flex align-items-center w-100 justify-content-start" style="max-width:700px;background:#f5f5f5;color:#222;padding:18px 28px;border-bottom:1px solid #e0e0e0;position:sticky;top:0;z-index:10;">
+        @if (PartnerUser != null)
         {
-            <div class="message-item @(message.SenderId == CurrentUserId ? "sent" : "received")">
-                @if (!string.IsNullOrEmpty(message.ImageUrl))
-                {
-                    <img src="@message.ImageUrl" class="message-image"/>
-                }
-                @if (!string.IsNullOrEmpty(message.TextContent))
-                {
-                    <span>@message.TextContent</span>
-                }
-                <span class="timestamp">@message.SentAt.ToLocalTime().ToString("g")</span>
+            <ProfileImage User="PartnerUser" Size="48" clazz="me-3 border border-2 border-secondary" />
+            <div>
+                <div class="fw-semibold fs-5">@PartnerUser.FirstName @PartnerUser.LastName</div>
+            </div>
+        } else
+        {
+            <div class="placeholder-glow d-flex align-items-center">
+                <span class="placeholder rounded-circle me-3" style="width:48px;height:48px;"></span>
+                <div>
+                    <div class="placeholder col-6" style="height:1.5rem;"></div>
+                </div>
             </div>
         }
     </div>
-    <div class="message-input-area">
+    <div class="container conversation-container bg-white shadow rounded-3 mb-4 p-0 d-flex flex-column" style="max-width:700px;height:80vh;">
+        <div class="messages-list flex-grow-1 overflow-auto p-4 d-flex flex-column gap-3" @ref="messagesListDiv">
+        @foreach (var message in Messages)
+        {
+                var author = message.SenderId == CurrentUserId ? CurrentUser : PartnerUser;
+                var isSent = message.SenderId == CurrentUserId;
+                <div class="d-flex @(isSent ? "flex-row-reverse" : "") align-items-start mb-3">
+                    <ProfileImage User="author" Size="36" clazz="border border-2 border-secondary mx-2" />
+                    <div class="rounded-3 p-3 position-relative"
+                         style="max-width:420px;background:@(isSent ? "#d1f7c4" : "#f0f0f0");color:#222;">
+                        <div class="d-flex align-items-center mb-1 gap-2">
+                            <span class="fw-medium">@author?.FirstName @author?.LastName</span>
+                            <span class="text-secondary small">@message.SentAt.ToLocalTime().ToString("g")</span>
+                        </div>
+                @if (!string.IsNullOrEmpty(message.ImageUrl))
+                {
+                            <ImagePreview Url="@message.ImageUrl" Class="mb-2" Style="max-width:220px;max-height:180px;object-fit:cover;" />
+                }
+                @if (!string.IsNullOrEmpty(message.TextContent))
+                {
+                            <div class="mt-1">@message.TextContent</div>
+                }
+                    </div>
+            </div>
+        }
+    </div>
+           @if (!string.IsNullOrEmpty(ImagePreviewUrl))
+            {
+                <div class="w-100 d-flex justify-content-center mb-2">
+                    <ImagePreview Url="@ImagePreviewUrl" Style="max-width:440px;max-height:360px;object-fit:cover;" />
+                </div>
+            }
+        <div class="message-input-area d-flex align-items-center p-3 border-top gap-2 bg-white">
         <textarea
             @bind="NewMessage"
             @onkeydown="HandleKeyDown"
             placeholder="Type a message..." 
-            class="message-input"></textarea>
-        <label for="file-upload" title="Envoyer une image" class="icon-btn" style="margin-bottom:0;">
+                class="form-control flex-grow-1 rounded-pill px-3 py-2"
+                style="min-height:40px;max-height:120px;resize:none;font-size:0.95rem;"></textarea>
+            <label for="file-upload" title="Envoyer une image" class="btn btn-outline-secondary rounded-circle mb-0">
             <i class="bi bi-image"></i>
         </label>
-        <InputFile id="file-upload" type="file" accept="image/*" OnChange="OnImageSelected" style="display:none"
-                   @ref="fileInput"/>
-        <button onclick="@SendMessage" title="Send message" class="icon-btn"><i class="bi bi-send"></i></button>
+            <InputFile id="file-upload" type="file" accept="image/*" OnChange="OnImageSelected" style="display:none" @ref="fileInput"/>
+            <button onclick="@SendMessage" title="Send message" class="btn btn-primary rounded-circle"><i class="bi bi-send"></i></button>
+        </div>
+     
     </div>
 </div>
 
@@ -153,9 +83,12 @@
     [Parameter] public string ConversationId { get; set; }
     private List<Message> Messages = new();
     private string NewMessage = string.Empty;
-    private string? ImageUrl;
+    private IBrowserFile? SelectedImageFile;
+    private string? ImagePreviewUrl;
+    private MemoryStream ImageStream;
     private string? CurrentUserId;
     private User? CurrentUser;
+    private User? PartnerUser;
     private InputFile fileInput;
     private ElementReference messagesListDiv;
     private HubConnection? hubConnection;
@@ -167,6 +100,7 @@
         CurrentUserId = user?.Id;
         CurrentUser = user;
         Messages = await MessageService.GetMessagesAsync(ConversationId);
+        LoadPartnerUser();
         await SetupSignalR();
         await MarkAllAsRead();
     }
@@ -209,26 +143,38 @@
 
     private async Task SendMessage()
     {
-        if (string.IsNullOrWhiteSpace(NewMessage) && string.IsNullOrEmpty(ImageUrl)) return;
+        if (string.IsNullOrWhiteSpace(NewMessage) && SelectedImageFile == null) return;
         if (string.IsNullOrEmpty(CurrentUserId)) return;
+        string? imageUrl = null;
+        if (SelectedImageFile != null && ImageStream is { Length: > 0 })
+        {
+            imageUrl = await MessageService.UploadImageAsync(ImageStream, SelectedImageFile.Name);
+        }
         if (hubConnection != null)
         {
-            await hubConnection.InvokeAsync("SendMessage", ConversationId, CurrentUserId, NewMessage, ImageUrl);
+            await hubConnection.InvokeAsync("SendMessage", ConversationId, CurrentUserId, NewMessage, imageUrl);
         }
-
         NewMessage = string.Empty;
-        ImageUrl = null;
+        SelectedImageFile = null;
+        ImagePreviewUrl = null;
         await ScrollToBottom();
+        StateHasChanged();
     }
 
     private async Task OnImageSelected(InputFileChangeEventArgs e)
     {
-        var file = ((InputFileChangeEventArgs)e).File;
-        if (file != null)
+        SelectedImageFile = e.File;
+        if (SelectedImageFile != null)
         {
-            using var stream = file.OpenReadStream();
-            ImageUrl = await MessageService.UploadImageAsync(stream, file.Name);
+            await using var inputStream = SelectedImageFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await inputStream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            ImagePreviewUrl = $"data:{SelectedImageFile.ContentType};base64,{Convert.ToBase64String(bytes)}";
+            ImageStream = new MemoryStream(bytes);
         }
+        StateHasChanged();
+        await ScrollToBottom();
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
@@ -247,7 +193,7 @@
     [JSInvokable]
     public async Task OnImagePasted(string imageUrl)
     {
-        ImageUrl = imageUrl;
+        ImagePreviewUrl = imageUrl;
         StateHasChanged();
     }
 
@@ -272,6 +218,13 @@
     {
         await MarkAllAsRead();
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadPartnerUser()
+    {
+        var conv = await MessageService.GetConversationById(ConversationId);
+        string partnerId = conv.User1Id == CurrentUserId ? conv.User2Id : conv.User1Id;
+        PartnerUser = await AuthService.GetUserById(partnerId);
     }
 
     public async ValueTask DisposeAsync()
