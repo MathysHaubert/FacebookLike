@@ -1,21 +1,23 @@
-﻿@using FacebookLike.Service
-@inject AuthorizationHandler AuthHandler
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
 
 @code {
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+    private bool isAuthenticated;
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender)
-        {
-            // Ensure the user is authenticated before rendering the child content
-            AuthHandler.EnsureAuthenticated();
-        }
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
     }
 }
 
-@if (AuthHandler._authService.CurrentUser != null)
+@if (isAuthenticated)
 {
     @ChildContent
+}
+else
+{
+    <p>You must be logged in.</p>
 }

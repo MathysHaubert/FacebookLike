@@ -1,7 +1,28 @@
+# .NET
 bin/
 obj/
+*.user
+*.suo
+*.DotSettings*
+
+# Visual Studio
+.vs/
+.idea/
+
+# Cursor
+cursor.json
+
+# Secrets
+.env
+service-account-file.json
+
+# Node
+node_modules/
+
+# Autres
+*.log
+
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
 /Data/
-.env

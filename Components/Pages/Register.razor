@@ -14,7 +14,8 @@
             </div>
 
             <div class="register-form">
-                <EditForm Model="@registerModel" OnValidSubmit="HandleRegister" OnInvalidSubmit="HandleInvalidRegister" FormName="RegisterForm">
+                <EditForm Model="@registerModel" OnValidSubmit="HandleRegister" OnInvalidSubmit="HandleInvalidRegister"
+                          FormName="RegisterForm">
                     <DataAnnotationsValidator/>
                     @if (!string.IsNullOrEmpty(errorMessage))
                     {
@@ -32,7 +33,7 @@
                             <ValidationMessage For="@(() => registerModel.LastName)" class="text-danger small"/>
                         </div>
                     </div>
-                    <div class="mb-3">          
+                    <div class="mb-3">
                         <InputText @bind-Value="registerModel.Email" class="form-control form-control-lg"
                                    placeholder="Email address" type="email" autocomplete="email"/>
                         <ValidationMessage For="@(() => registerModel.Email)" class="text-danger small"/>
@@ -44,16 +45,18 @@
                     </div>
                     <div class="mb-3">
                         <InputText type="password" @bind-Value="registerModel.Password"
-                                   class="form-control form-control-lg" placeholder="Your password" autocomplete="new-password"/>
+                                   class="form-control form-control-lg" placeholder="Your password"
+                                   autocomplete="new-password"/>
                         <ValidationMessage For="@(() => registerModel.Password)" class="text-danger small"/>
                     </div>
                     <div class="mb-3">
                         <InputText type="password" @bind-Value="registerModel.ConfirmPassword"
-                                   class="form-control form-control-lg" placeholder="Confirm password" autocomplete="confirm-password"/>
+                                   class="form-control form-control-lg" placeholder="Confirm password"
+                                   autocomplete="confirm-password"/>
                         <ValidationMessage For="@(() => registerModel.ConfirmPassword)" class="text-danger small"/>
                     </div>
                     <div class="mb-3">
-                        <InputDate @bind-Value="registerModel.BirthDate" class="form-control form-control-lg" 
+                        <InputDate @bind-Value="registerModel.BirthDate" class="form-control form-control-lg"
                                    placeholder="Birth date"/>
                         <ValidationMessage For="@(() => registerModel.BirthDate)" class="text-danger small"/>
                     </div>
@@ -85,7 +88,7 @@
         Console.WriteLine("HandleRegister called");
         try
         {
-            var user = await AuthService.Register(
+            var isRegistered = await AuthService.Register(
                 registerModel.Username,
                 registerModel.Password,
                 registerModel.Email,
@@ -94,12 +97,13 @@
                 registerModel.Gender,
                 registerModel.BirthDate
             );
-            if (user == null)
+            if (isRegistered)
             {
-                errorMessage = "Registration failed. Please try again.";
+                NavigationManager.NavigateTo("/login");
                 return;
             }
-            NavigationManager.NavigateTo("/");
+
+            errorMessage = "Registration failed. Please try again.";
         }
         catch (Exception ex)
         {
@@ -135,7 +139,7 @@
         [Required(ErrorMessage = "Password is required")]
         [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
         public string Password { get; set; } = string.Empty;
-        
+
         [Compare(nameof(Password), ErrorMessage = "Passwords do not match")]
         public string ConfirmPassword { get; set; } = string.Empty;
 

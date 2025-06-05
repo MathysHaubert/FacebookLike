@@ -71,7 +71,7 @@
         if (timeSpan.TotalMinutes < 60)
             return (int)timeSpan.TotalMinutes + " minute(s) ago";
         if (timeSpan.TotalHours < 24)
-            return (int)timeSpan.TotalHours + "hour(s) ago";
+            return (int)timeSpan.TotalHours + " hour(s) ago";
         if (timeSpan.TotalDays < 3)
             return (int)timeSpan.TotalDays + " day(s)";
         return dateTime.ToString("dd/MM/yyyy");

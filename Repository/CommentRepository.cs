@@ -29,9 +29,9 @@ namespace FacebookLike.Repository
                 .WithParam("userId", userId)
                 .WithParam("postId", postId)
                 .Create("(c:Comment $comment)")
-                .Create("(u)-[:WROTE]->(c)")
-                .Create("(c)-[:COMMENTED]->(p)")
                 .WithParam("comment", comment)
+                .Merge("(u)-[:WROTE]->(c)")
+                .Merge("(c)-[:COMMENTED]->(p)")
                 .ExecuteWithoutResultsAsync();
         }
 
