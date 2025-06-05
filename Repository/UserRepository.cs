@@ -26,7 +26,7 @@ public class UserRepository(IGraphClient client)
     {
         var user = await client.Cypher
             .Match("(u:User)")
-            .Where((User u) => u.Id == id) // Adapter si id est une propriété
+            .Where((User u) => u.Id == id)
             .Return(u => u.As<User>())
             .ResultsAsync;
         return user.SingleOrDefault();
@@ -55,6 +55,8 @@ public class UserRepository(IGraphClient client)
     public async Task Create(User user)
     {
         user.Password = PasswordEncoder.Encode(user.Password);
+        if (string.IsNullOrEmpty(user.Id))
+            user.Id = Guid.NewGuid().ToString();
         await client.Cypher.Create("(u:User $user)").WithParam("user", user).ExecuteWithoutResultsAsync();
     }
 

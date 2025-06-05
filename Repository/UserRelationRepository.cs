@@ -17,7 +17,7 @@ public class UserRelationRepository
             .Match("(a:User {Username: $from}), (b:User {Username: $to})")
             .WithParam("from", fromUsername)
             .WithParam("to", toUsername)
-            .Create("(a)-[:FRIEND]->(b)")
+            .Merge("(a)-[:FRIEND]->(b)")
             .ExecuteWithoutResultsAsync();
     }
 
@@ -27,6 +27,16 @@ public class UserRelationRepository
             .Match("(a:User {Id: $userId})-[:FRIEND]->(b:User)")
             .WithParam("userId", userId)
             .Return(b => b.As<User>().Id)
+            .ResultsAsync;
+        return result.ToList();
+    }
+
+    public async Task<List<User>> GetFriends(string userId)
+    {
+        var result = await _client.Cypher
+            .Match("(a:User {Id: $userId})-[:FRIEND]->(b:User)")
+            .WithParam("userId", userId)
+            .Return(b => b.As<User>())
             .ResultsAsync;
         return result.ToList();
     }

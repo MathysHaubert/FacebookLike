@@ -6,96 +6,137 @@
 @inject IUserService UserService
 
 <RequireAuth>
-    <div class="container mt-5">
-        <div class="card shadow">
-            <div class="card-body">
-                <h2 class="card-title mb-4 d-flex align-items-center">
-                    My Profile
-                    @if (isLoading)
-                    {
+    @if (user == null)
+    {
+        <div class="container mt-5">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title mb-4 d-flex align-items-center">
+                        <span class="placeholder-glow">
+                            <span class="placeholder col-6" style="height:2.5rem;"></span>
+                        </span>
                         <span class="spinner-border spinner-border-sm ms-3" role="status" aria-hidden="true"></span>
-                    }
-                </h2>
-
-                <div class="d-flex align-items-center mb-4">
-                    <div class="position-relative" style="width: 100px; height: 100px;">
-                        <label class="w-100 h-100 m-0 p-0 d-block" style="cursor:pointer;">
-                            <InputFile type="file" accept="image/*" style="display:none;" OnChange="HandleFileSelected" />
-                            <ProfileImage User="user" Size="100" clazz="me-3 w-100 h-100" />
-
-                            @if (!string.IsNullOrEmpty(user?.ProfileImageUrl))
-                            {
-                                <button 
-                                    type="button"
-                                    class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle"
-                                    style="z-index:2;"
-                                    @onclick="RemoveProfileImage"
-                                    disabled="@isLoading">
-                                    <i class="bi bi-x"></i>
-                                </button>
-                            }
-
-                        </label>
+                    </h2>
+                    <div class="d-flex align-items-center mb-4">
+                        <span class="placeholder rounded-circle me-3"
+                              style="width:100px; height:100px; display:inline-block;"></span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <span class="placeholder col-12" style="height:2rem;"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="placeholder col-12" style="height:2rem;"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="placeholder col-12" style="height:2rem;"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="placeholder col-12" style="height:2rem;"></span>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="placeholder col-3" style="height:2.5rem;"></span>
                     </div>
                 </div>
-
-
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">First Name</label>
-                        <input type="text" class="form-control" @bind="user.FirstName"/>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Last Name</label>
-                        <input type="text" class="form-control" @bind="user.LastName"/>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-control" @bind="user.Email"/>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Gender</label>
-                        <select class="form-select" @bind="user.Gender">
-                            @foreach (var option in GetGenderOptions())
-                            {
-                                <option value="@option">@option</option>
-                            }
-                        </select>
-                    </div>
-
-                </div>
-
-                <div class="mt-4">
-                    <button type="button" class="@GetButtonClass()" @onclick="SaveChanges">
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="container mt-5">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title mb-4 d-flex align-items-center">
+                        My Profile
                         @if (isLoading)
                         {
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            @:Saving...
+                            <span class="spinner-border spinner-border-sm ms-3" role="status" aria-hidden="true"></span>
                         }
-                        else
+                    </h2>
+
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="position-relative" style="width: 100px; height: 100px;">
+                            <label class="w-100 h-100 m-0 p-0 d-block" style="cursor:pointer;">
+                                <InputFile type="file" accept="image/*" style="display:none;"
+                                           OnChange="HandleFileSelected"/>
+                                <ProfileImage User="user" Size="100" clazz="me-3 w-100 h-100"/>
+
+                                @if (!string.IsNullOrEmpty(user?.ProfileImageUrl))
+                                {
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle"
+                                        style="z-index:2;"
+                                        @onclick="RemoveProfileImage"
+                                        disabled="@isLoading">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                }
+
+                            </label>
+                        </div>
+                    </div>
+
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">First Name</label>
+                            <input type="text" class="form-control" @bind="user.FirstName"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" class="form-control" @bind="user.LastName"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" @bind="user.Email"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Gender</label>
+                            <select class="form-select" @bind="user.Gender">
+                                @foreach (var option in GetGenderOptions())
+                                {
+                                    <option value="@option">@option</option>
+                                }
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="button" class="@GetButtonClass()" @onclick="SaveChanges">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"
+                                      aria-hidden="true"></span>
+                                @:Saving...
+                            }
+                            else
+                            {
+                                @:Save
+                            }
+                        </button>
+                        @if (message != null)
                         {
-                            @:Save
+                            <p class="mt-2 text-success">@message</p>
                         }
-                    </button>
-                    @if (message != null)
-                    {
-                        <p class="mt-2 text-success">@message</p>
-                    }
+                    </div>
+
                 </div>
-
             </div>
         </div>
-    </div>
 
-    <div class="container mt-5">
-        <div class="card shadow">
-            <div class="card-body">
-                <h2 class="card-title mb-4">Your Posts</h2>
+        <div class="container mt-5">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Your Posts</h2>
 
 
+                </div>
             </div>
         </div>
-    </div>
+    }
 </RequireAuth>
 
 @code {
@@ -104,9 +145,9 @@
     private bool isSuccess = false;
     private string? message;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        user = AuthService.CurrentUser;
+        user = await AuthService.GetCurrentUserAsync();
     }
 
     private List<string> GetGenderOptions()
@@ -116,6 +157,7 @@
         {
             return allOptions;
         }
+
         return new List<string> { user.Gender }.Concat(allOptions.Where(g => g != user.Gender)).ToList();
     }
 
@@ -135,6 +177,7 @@
                     user.ProfileImageUrl = imageUrl;
                 }
             }
+
             isLoading = false;
             StateHasChanged();
         }
@@ -189,6 +232,7 @@
         {
             message = $"Error while removing: {ex.Message}";
         }
+
         isLoading = false;
         StateHasChanged();
     }

@@ -57,6 +57,7 @@ public class InitSeeder
         await _userRepository.Create(alice);
         await _userRepository.Create(bob);
         await _userRelationRepository.CreateFriendship("alice", "bob");
+        await _userRelationRepository.CreateFriendship("bob", "alice");
 
         // Création de posts liés aux users
         var post1 = new Post {
@@ -88,14 +89,29 @@ public class InitSeeder
         var lastNames = new[] { "Martin", "Bernard", "Thomas", "Petit", "Robert", "Richard", "Durand", "Dubois", "Moreau", "Laurent", "Simon", "Michel", "Lefebvre", "Leroy", "Roux", "David", "Bertrand", "Morel", "Fournier", "Girard" };
         var genders = new[] { "M", "F", "O" };
         var users = new List<User> { alice, bob };
+        var usernamesSet = new HashSet<string> { alice.Username, bob.Username };
+        var nameCombSet = new HashSet<string> { $"{alice.FirstName.ToLower()}|{alice.LastName.ToLower()}", $"{bob.FirstName.ToLower()}|{bob.LastName.ToLower()}" };
         int userCount = 20; // Réduit pour accélérer
         for (int i = 0; i < userCount; i++)
         {
-            var firstName = firstNames[random.Next(firstNames.Length)];
-            var lastName = lastNames[random.Next(lastNames.Length)];
+            string firstName, lastName, username, nameKey;
+            int lastNameSuffix = 0;
+            do {
+                firstName = firstNames[random.Next(firstNames.Length)];
+                lastName = lastNames[random.Next(lastNames.Length)];
+                nameKey = $"{firstName.ToLower()}|{lastName.ToLower()}";
+                // Si la combinaison existe déjà, on ajoute un numéro à la fin du lastName
+                while (nameCombSet.Contains(nameKey)) {
+                    lastNameSuffix++;
+                    lastName = lastNames[random.Next(lastNames.Length)] + lastNameSuffix;
+                    nameKey = $"{firstName.ToLower()}|{lastName.ToLower()}";
+                }
+                username = $"{firstName.ToLower()}{lastName.ToLower()}";
+            } while (usernamesSet.Contains(username));
+            usernamesSet.Add(username);
+            nameCombSet.Add(nameKey);
+            var email = $"{username}{i}@example.com";
             var gender = genders[random.Next(genders.Length)];
-            var username = $"{firstName.ToLower()}{lastName.ToLower()}{i}";
-            var email = $"{firstName.ToLower()}.{lastName.ToLower()}{i}@example.com";
             var user = new User
             {
                 Username = username,
@@ -114,6 +130,7 @@ public class InitSeeder
         
         // Amitiés aléatoires entre les 100 users
         _logger.LogInformation("[Seeder] Creating friendships...");
+        var friendshipSet = new HashSet<string>();
         for (int i = 0; i < users.Count; i++)
         {
             var userA = users[i];
@@ -127,7 +144,12 @@ public class InitSeeder
             foreach (var idx in friendIndexes)
             {
                 var userB = users[idx];
-                await _userRelationRepository.CreateFriendship(userA.Username, userB.Username);
+                var key = userA.Username.CompareTo(userB.Username) < 0 ? $"{userA.Username}|{userB.Username}" : $"{userB.Username}|{userA.Username}";
+                if (!friendshipSet.Contains(key))
+                {
+                    await _userRelationRepository.CreateFriendship(userA.Username, userB.Username);
+                    friendshipSet.Add(key);
+                }
             }
             if (i % 5 == 0) _logger.LogInformation($"[Seeder] Friendships for user {i+1}/{users.Count}");
         }

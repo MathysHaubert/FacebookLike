@@ -3,6 +3,7 @@ using FacebookLike.Service;
 using FacebookLike.Service.GoogleCloud;
 using FacebookLike.Service.Neo4jService;
 using FacebookLike.Service.Security;
+using Microsoft.AspNetCore.Authentication;
 
 namespace FacebookLike
 {
@@ -10,18 +11,21 @@ namespace FacebookLike
     {
         public static IServiceCollection AddFacebookLikeServices(this IServiceCollection services)
         {
-            services.AddSingleton<UserRepository>();
-            services.AddSingleton<UserRelationRepository>();
-            services.AddSingleton<PostRepository>();
-            services.AddSingleton<CommentRepository>();
-            services.AddSingleton<LikeRepository>();
-            services.AddSingleton<IAuthService, AuthService>();
+            services.AddScoped<UserRepository>();
+            services.AddScoped<UserRelationRepository>();
+            services.AddScoped<PostRepository>();
+            services.AddScoped<CommentRepository>();
+            services.AddScoped<LikeRepository>();
+            services.AddScoped<ConversationRepository>();
+            services.AddScoped<IAuthService, AuthService>();
             services.AddSingleton<StorageService>();
             services.AddScoped<AuthorizationHandler>();
 
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IPostService, PostService>();
             services.AddScoped<ICommentService, CommentService>();
+            services.AddScoped<IMessageService, MessageService>();
+            services.AddScoped<IFriendService, FriendService>();
           
             return services;
         }
