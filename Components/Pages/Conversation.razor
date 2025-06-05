@@ -167,8 +167,8 @@
         CurrentUserId = user?.Id;
         CurrentUser = user;
         Messages = await MessageService.GetMessagesAsync(ConversationId);
-        await MarkAllAsReadOnFocus();
         await SetupSignalR();
+        await MarkAllAsRead();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -256,24 +256,21 @@
         await JS.InvokeVoidAsync("scrollToBottom", messagesListDiv);
     }
 
-    private async Task MarkAllAsReadOnFocus()
+    private async Task MarkAllAsRead()
     {
         if (!string.IsNullOrEmpty(ConversationId) && !string.IsNullOrEmpty(CurrentUserId))
         {
-            // Appel SignalR pour notifier tous les clients (menu, etc.)
             if (hubConnection != null)
             {
                 await hubConnection.InvokeAsync("MarkConversationAsRead", ConversationId, CurrentUserId);
             }
-            // Appel local pour s'assurer que les messages sont marqués comme lus côté serveur
-            await MessageService.MarkMessagesAsReadAsync(ConversationId, CurrentUserId);
         }
     }
 
     [JSInvokable]
     public async Task OnPageFocus()
     {
-        await MarkAllAsReadOnFocus();
+        await MarkAllAsRead();
         await InvokeAsync(StateHasChanged);
     }
 

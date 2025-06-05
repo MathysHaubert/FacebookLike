@@ -1,5 +1,4 @@
-﻿@using FacebookLike.Controllers
-@using FacebookLike.Neo4j.Node
+﻿@using FacebookLike.Neo4j.Node
 @using FacebookLike.Service
 @using Microsoft.AspNetCore.SignalR.Client
 @rendermode InteractiveServer
@@ -87,7 +86,7 @@
             var count = await MessageService.GetUnreadCountForConversationAsync(conversation.Id, currentUser.Id);
             UnreadCounts[friend.Id] = count;
         }
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task SetupSignalR()
@@ -96,32 +95,25 @@
         hubConnection = new HubConnectionBuilder()
             .WithUrl(navigationManager.ToAbsoluteUri($"/messagehub?userId={currentUser.Id}"))
             .Build();
-        hubConnection.On<Message>("ReceiveMessageFull", async (message) =>
-        {
-            await LoadUnreadCounts();
-            JS.InvokeVoidAsync("blazoredToast.show", "New message received!");
-        });
-        hubConnection.On<Message>("ReceiveNewMessageNotification", async message =>
-        {
-            await LoadUnreadCounts();
-            JS.InvokeVoidAsync("blazoredToast.show", $"New message from {message.SenderId}!");
-        });
         await hubConnection.StartAsync();
 
-        hubConnection.On<string, long>("UpdateUnreadCountForConversation", async (conversationId, count) =>
-        {
-            foreach (var friend in Friends)
+        hubConnection.On<string, long, string>("UpdateUnreadCountForConversation",
+            async (conversationId,
+                count,
+                recipientId) =>
             {
-                var conv = await MessageService.GetOrCreateConversationAsync(currentUser.Id, friend.Id);
-                if (conv.Id == conversationId)
+                foreach (var friend in Friends)
                 {
-                    UnreadCounts[friend.Id] = count;
-                    await JS.InvokeVoidAsync("console.log", $"[SignalR] UpdateUnreadCountForConversation: conversationId={conversationId}, friendId={friend.Id}, count={count}, currentUser={currentUser.Id}");
-                    await InvokeAsync(StateHasChanged);
-                    break;
+                    var conv = await MessageService.GetOrCreateConversationAsync(currentUser.Id,
+                        friend.Id);
+                    if (conv.Id == conversationId && currentUser.Id == recipientId)
+                    {
+                        UnreadCounts[friend.Id] = count;
+                        await InvokeAsync(StateHasChanged);
+                        break;
+                    }
                 }
-            }
-        });
+            });
     }
 
     private async Task GoToConversation(string friendId)
