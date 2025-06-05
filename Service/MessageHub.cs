@@ -46,7 +46,8 @@ namespace FacebookLike.Service
             {
                 await Clients.Client(connId).SendAsync("ReceiveNewMessageNotification", message);
                 var unreadCount = await _messageService.GetUnreadCountForConversationAsync(conversationId, recipientId);
-                await Clients.All.SendAsync("UpdateUnreadCountForConversation", conversationId, unreadCount);
+                await Clients.All.SendAsync("UpdateUnreadCountForConversation", conversationId, unreadCount,
+                    recipientId);
             }
         }
 
@@ -79,11 +80,11 @@ namespace FacebookLike.Service
         public async Task MarkConversationAsRead(string conversationId, string userId)
         {
             await _messageService.MarkMessagesAsReadAsync(conversationId, userId);
-            // Notifie le client (NavBar) de mettre à jour le badge
-            if (!string.IsNullOrEmpty(userId) && UserConnections.TryGetValue(userId, out var connId))
+            _logger.LogInformation($"User {userId} marked conversation {conversationId} as read");
+            if (!string.IsNullOrEmpty(userId))
             {
                 var unreadCount = await _messageService.GetUnreadCountForConversationAsync(conversationId, userId);
-                await Clients.Client(connId).SendAsync("UpdateUnreadCountForConversation", conversationId, unreadCount);
+                await Clients.All.SendAsync("UpdateUnreadCountForConversation", conversationId, unreadCount, userId);
             }
         }
     }
