@@ -26,6 +26,9 @@
       <None Update="Components\Pages\PublicProfile.css">
         <DependentUpon>PublicProfile.razor</DependentUpon>
       </None>
+      <None Update="Components\Pages\Search.css">
+        <DependentUpon>Search.razor</DependentUpon>
+      </None>
     </ItemGroup>
 
     <ItemGroup>

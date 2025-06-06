@@ -1,3 +1,10 @@
+public enum PrivacyLevel
+{
+    Public,
+    FriendsOnly,
+    Private
+}
+
 public class User
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
@@ -17,4 +24,6 @@ public class User
     public string? Studies { get; set; }
     public string? LivesIn { get; set; }
     public string? Relationship { get; set; }
+    
+    public PrivacyLevel PrivacyLevel { get; set; } = PrivacyLevel.FriendsOnly;
 }

@@ -2,16 +2,13 @@
 @rendermode InteractiveServer
 @using System.Globalization
 @using FacebookLike.Models
-@using FacebookLike.Service
 @using FacebookLike.Service.Neo4jService
 @inject UserProfileService ProfileService
 @inject IAuthService AuthService
-@inject INotificationService NotificationService
 @inject NavigationManager NavigationManager
 
 @code {
-    [Parameter]
-    public string? idParam { get; set; }
+    [Parameter] public string? idParam { get; set; }
 
     private UserDetails? Profile;
     private User ProfileUser => Profile?.User;
@@ -25,6 +22,10 @@
     private bool _followersLoaded;
     private bool _followingLoaded;
     private string _bannerImageUrl;
+    private bool _isOwnProfile => _currentUser?.Id == idParam;
+    private bool _canViewFullProfile => _isOwnProfile || 
+                                      ProfileUser?.PrivacyLevel == PrivacyLevel.Public || 
+                                      (ProfileUser?.PrivacyLevel == PrivacyLevel.FriendsOnly && _isFollowing);
 
     protected override async Task OnParametersSetAsync()
     {
@@ -44,14 +45,15 @@
             var height = 400;
             _bannerImageUrl = $"https://picsum.photos/seed/{idParam}/{width}/{height}";
 
-            var currentUser = await AuthService.GetCurrentUserAsync(); 
+            var currentUser = await AuthService.GetCurrentUserAsync();
             if (currentUser is null)
             {
                 _isLoading = false;
                 return;
             }
+
             _currentUser = currentUser;
-            
+
             Profile = await ProfileService.GetProfileAsync(idParam, currentUser.Id);
             if (Profile is null)
             {
@@ -59,7 +61,7 @@
                 return;
             }
 
-            if(_currentUser.Id != ProfileUser.Id)
+            if (_currentUser.Id != ProfileUser.Id)
             {
                 _isFollowing = await ProfileService.IsFollowingAsync(_currentUser.Id, idParam);
             }
@@ -79,8 +81,6 @@
         {
             await ProfileService.FollowAsync(_currentUser.Id, ProfileUser.Id);
             _isFollowing = true;
-
-          
         }
 
         Profile = await ProfileService.GetProfileAsync(ProfileUser.Id, _currentUser.Id);
@@ -94,6 +94,7 @@
             _followers = await ProfileService.GetFollowersAsync(idParam);
             _followersLoaded = true;
         }
+
         _showFollowersModal = true;
     }
 
@@ -104,6 +105,7 @@
             _following = await ProfileService.GetFollowingAsync(idParam);
             _followingLoaded = true;
         }
+
         _showFollowingModal = true;
     }
 
@@ -128,6 +130,7 @@
             CloseFollowingModal();
         }
     }
+
 }
 
 @if (_isLoading)
@@ -148,7 +151,7 @@ else
     <div class="profile-page">
         <!-- Banner -->
         <div class="banner-container">
-            <img src="@_bannerImageUrl" alt="Profile banner" class="banner-image" />
+            <img src="@_bannerImageUrl" alt="Profile banner" class="banner-image"/>
             <div class="banner-overlay"></div>
         </div>
 
@@ -156,167 +159,215 @@ else
         <div class="position-relative">
             <div class="container mt-5">
                 <div class="d-flex align-items-center gap-4">
-                    <ProfileImage User="@ProfileUser" Size="120" clazz="rounded-circle" style="border: 4px solid white;" />
+                    <ProfileImage User="@ProfileUser" Size="120" clazz="rounded-circle"
+                                  style="border: 4px solid white;"/>
                     <div>
                         <h2 class="mb-1 fw-bold">@ProfileUser.FirstName @ProfileUser.LastName</h2>
-                        <small class="text-muted">
-                            @Profile.FollowersCount.ToString("N0", CultureInfo.InvariantCulture) followers
-                        </small>
+                        @if (_canViewFullProfile)
+                        {
+                            <small class="text-muted">
+                                @Profile.FollowersCount.ToString("N0", CultureInfo.InvariantCulture) followers
+                            </small>
+                        }
                     </div>
                 </div>
 
                 <div class="mt-3 d-flex gap-2">
-                    <button class="btn btn-primary d-flex align-items-center gap-1"
-                            onclick="@OnFollowButtonClicked">
-                        @if (_isFollowing)
-                        {
-                            <i class="bi bi-person-check-fill"></i>
-                            <text>Following</text>
-                        }
-                        else
-                        {
-                            <i class="bi bi-person-plus-fill"></i>
-                            <text>Follow</text>
-                        }
-                    </button>
+                    @if (_isOwnProfile)
+                    {
+                        <button class="btn btn-secondary d-flex align-items-center gap-1"
+                                onclick="@(() => NavigationManager.NavigateTo("/edit-profile"))">
+                            <i class="bi bi-gear-fill"></i>
+                            <text>Edit Profile</text>
+                        </button>
+                    }
+                    else if (_canViewFullProfile)
+                    {
+                        <button class="btn btn-primary d-flex align-items-center gap-1"
+                                onclick="@OnFollowButtonClicked">
+                            @if (_isFollowing)
+                            {
+                                <i class="bi bi-person-check-fill"></i>
+                                <text>Following</text>
+                            }
+                            else
+                            {
+                                <i class="bi bi-person-plus-fill"></i>
+                                <text>Follow</text>
+                            }
+                        </button>
+                    }
                 </div>
             </div>
         </div>
 
-        <div class="container">
-            <div class="mt-4">
-                <div class="row">
-                    <div class="col-12">
-                        @if (!string.IsNullOrEmpty(ProfileUser.Bio))
-                        {
-                            <p class="mb-3">@ProfileUser.Bio</p>
-                        }
-                        
-                        <!-- Stats Cards -->
-                        <div class="row mb-4">
-                            <div class="col-md-3 col-6 mb-3">
-                                <div class="card bg-primary text-white h-100" style="cursor: pointer;" @onclick="ShowFollowersModal">
-                                    <div class="card-body text-center">
-                                        <i class="bi bi-people-fill fs-1 mb-2"></i>
-                                        <h3 class="mb-0">@Profile.FollowersCount</h3>
-                                        <small>Followers</small>
+        @if (_canViewFullProfile)
+        {
+            <div class="container">
+                <div class="mt-4">
+                    <div class="row">
+                        <div class="col-12">
+                            @if (!string.IsNullOrEmpty(ProfileUser.Bio))
+                            {
+                                <p class="mb-3">@ProfileUser.Bio</p>
+                            }
+
+                            <!-- Stats Cards -->
+                            <div class="row mb-4">
+                                <div class="col-md-3 col-6 mb-3">
+                                    <div class="card bg-primary text-white h-100" style="cursor: pointer;"
+                                         @onclick="ShowFollowersModal">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-people-fill fs-1 mb-2"></i>
+                                            <h3 class="mb-0">@Profile.FollowersCount</h3>
+                                            <small>Followers</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6 mb-3">
+                                    <div class="card bg-success text-white h-100" style="cursor: pointer;"
+                                         @onclick="ShowFollowingModal">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-person-plus-fill fs-1 mb-2"></i>
+                                            <h3 class="mb-0">@Profile.FollowingCount</h3>
+                                            <small>Following</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6 mb-3">
+                                    <div class="card bg-info text-white h-100">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-chat-dots-fill fs-1 mb-2"></i>
+                                            <h3 class="mb-0">@(Profile.Posts?.Count ?? 0)</h3>
+                                            <small>Posts</small>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3 col-6 mb-3">
-                                <div class="card bg-success text-white h-100" style="cursor: pointer;" @onclick="ShowFollowingModal">
-                                    <div class="card-body text-center">
-                                        <i class="bi bi-person-plus-fill fs-1 mb-2"></i>
-                                        <h3 class="mb-0">@Profile.FollowingCount</h3>
-                                        <small>Following</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-6 mb-3">
-                                <div class="card bg-info text-white h-100">
-                                    <div class="card-body text-center">
-                                        <i class="bi bi-chat-dots-fill fs-1 mb-2"></i>
-                                        <h3 class="mb-0">@(Profile.Posts?.Count ?? 0)</h3>
-                                        <small>Posts</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <!-- Profile Info with Icons -->
-                        <div class="card shadow-sm mb-4">
-                            <div class="card-body">
-                                <h5 class="card-title mb-3">
-                                    <i class="bi bi-person-lines-fill text-primary me-2"></i>
-                                    About
-                                </h5>
-                                <div class="d-flex flex-wrap gap-4">
-                                    @if (!string.IsNullOrEmpty(ProfileUser.Work))
-                                    {
-                                        <div class="d-flex align-items-center gap-2">
-                                            <i class="bi bi-briefcase text-primary"></i>
-                                            <span>Works as @ProfileUser.Work</span>
-                                        </div>
-                                    }
-
-                                    @if (!string.IsNullOrEmpty(ProfileUser.WorksAt))
-                                    {
-                                        <div class="d-flex align-items-center gap-2">
-                                            <i class="bi bi-building text-primary"></i>
-                                            <span>at @ProfileUser.WorksAt</span>
-                                        </div>
-                                    }
-
-                                    @if (!string.IsNullOrEmpty(ProfileUser.Studies))
-                                    {
-                                        <div class="d-flex align-items-center gap-2">
-                                            <i class="bi bi-book text-primary"></i>
-                                            <span>Studied at @ProfileUser.Studies</span>
-                                        </div>
-                                    }
-
-                                    @if (!string.IsNullOrEmpty(ProfileUser.LivesIn))
-                                    {
-                                        <div class="d-flex align-items-center gap-2">
-                                            <i class="bi bi-geo-alt text-primary"></i>
-                                            <span>Lives in @ProfileUser.LivesIn</span>
-                                        </div>
-                                    }
-
-                                    @if (!string.IsNullOrEmpty(ProfileUser.Relationship))
-                                    {
-                                        <div class="d-flex align-items-center gap-2">
-                                            <i class="bi bi-heart text-primary"></i>
-                                            <span>@ProfileUser.Relationship</span>
-                                        </div>
-                                    }
-
-                                    <div class="d-flex align-items-center gap-2">
-                                        <i class="bi bi-calendar3 text-primary"></i>
-                                        <span>Born on @ProfileUser.DateOfBirth.ToString("MMMM d, yyyy")</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Activity Timeline -->
-                        <div class="card shadow-sm mb-4">
-                            <div class="card-body">
-                                <h5 class="card-title mb-3">
-                                    <i class="bi bi-activity text-primary me-2"></i>
-                                    Recent Activity
-                                </h5>
-                                <div class="timeline">
-                                    @if (Profile.Posts?.Any() == true)
-                                    {
-                                        @foreach (var post in Profile.Posts.Take(3))
+                            <!-- Profile Info with Icons -->
+                            <div class="card shadow-sm mb-4">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-3">
+                                        <i class="bi bi-person-lines-fill text-primary me-2"></i>
+                                        About
+                                    </h5>
+                                    <div class="d-flex flex-wrap gap-4">
+                                        @if (!string.IsNullOrEmpty(ProfileUser.Work))
                                         {
-                                            <div class="timeline-item">
-                                                <div class="timeline-marker"></div>
-                                                <div class="timeline-content">
-                                                    <h6 class="mb-1">@post.Post.Content.Substring(0, Math.Min(50, post.Post.Content.Length))...</h6>
-                                                    <small class="text-muted">@post.Post.CreatedAt.ToString("MMM dd, yyyy")</small>
-                                                </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi bi-briefcase text-primary"></i>
+                                                <span>Works as @ProfileUser.Work</span>
                                             </div>
                                         }
-                                    }
-                                    else
-                                    {
-                                        <p class="text-muted">No recent activity</p>
-                                    }
+
+                                        @if (!string.IsNullOrEmpty(ProfileUser.WorksAt))
+                                        {
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi bi-building text-primary"></i>
+                                                <span>at @ProfileUser.WorksAt</span>
+                                            </div>
+                                        }
+
+                                        @if (!string.IsNullOrEmpty(ProfileUser.Studies))
+                                        {
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi bi-book text-primary"></i>
+                                                <span>Studied at @ProfileUser.Studies</span>
+                                            </div>
+                                        }
+
+                                        @if (!string.IsNullOrEmpty(ProfileUser.LivesIn))
+                                        {
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi bi-geo-alt text-primary"></i>
+                                                <span>Lives in @ProfileUser.LivesIn</span>
+                                            </div>
+                                        }
+
+                                        @if (!string.IsNullOrEmpty(ProfileUser.Relationship))
+                                        {
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi bi-heart text-primary"></i>
+                                                <span>@ProfileUser.Relationship</span>
+                                            </div>
+                                        }
+
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-calendar3 text-primary"></i>
+                                            <span>Born on @ProfileUser.DateOfBirth.ToString("MMMM d, yyyy")</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Activity Timeline -->
+                            <div class="card shadow-sm mb-4">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-3">
+                                        <i class="bi bi-activity text-primary me-2"></i>
+                                        Recent Activity
+                                    </h5>
+                                    <div class="timeline">
+                                        @if (Profile.Posts?.Any() == true)
+                                        {
+                                            @foreach (var post in Profile.Posts.Take(3))
+                                            {
+                                                <div class="timeline-item">
+                                                    <div class="timeline-marker"></div>
+                                                    <div class="timeline-content">
+                                                        <h6 class="mb-1">@post.Post.Content.Substring(0, Math.Min(50, post.Post.Content.Length))...</h6>
+                                                        <small
+                                                            class="text-muted">@post.Post.CreatedAt.ToString("MMM dd, yyyy")</small>
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <p class="text-muted">No recent activity</p>
+                                        }
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <ul class="nav nav-tabs mt-4 overflow-auto" style="scrollbar-width: none;">
+                    <li class="nav-item"><a class="nav-link active" href="#">Posts</a></li>
+                </ul>
+
+                <PostList Posts="Profile.Posts" CurrentUser="_currentUser"/>
             </div>
-
-            <ul class="nav nav-tabs mt-4 overflow-auto" style="scrollbar-width: none;">
-                <li class="nav-item"><a class="nav-link active" href="#">Posts</a></li>
-            </ul>
-
-            <PostList Posts="Profile.Posts" CurrentUser="_currentUser" />
-        </div>
+        }
+        else
+        {
+            <div class="container mt-4">
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-lock-fill fs-1 text-muted mb-3"></i>
+                        <h4>This Profile is Private</h4>
+                        <p class="text-muted">
+                            @if (ProfileUser.PrivacyLevel == PrivacyLevel.Private)
+                            {
+                                <text>This user has set their profile to private.</text>
+                            }
+                            else if (ProfileUser.PrivacyLevel == PrivacyLevel.FriendsOnly)
+                            {
+                                <text>This user only shares their profile with friends.</text>
+                            }
+                        </p>
+                        @if (!_isFollowing && ProfileUser.PrivacyLevel == PrivacyLevel.FriendsOnly)
+                        {
+                            <button class="btn btn-primary mt-3" @onclick="OnFollowButtonClicked">
+                                <i class="bi bi-person-plus-fill me-2"></i>Follow to View Profile
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 }
 
@@ -335,8 +386,9 @@ else
                         <div class="list-group">
                             @foreach (var follower in _followers)
                             {
-                                <a href="/profile/@follower.Id" class="list-group-item list-group-item-action d-flex align-items-center gap-3">
-                                    <ProfileImage User="@follower" Size="40" clazz="rounded-circle" />
+                                <a href="/profile/@follower.Id"
+                                   class="list-group-item list-group-item-action d-flex align-items-center gap-3">
+                                    <ProfileImage User="@follower" Size="40" clazz="rounded-circle"/>
                                     <div>
                                         <h6 class="mb-0">@follower.FirstName @follower.LastName</h6>
                                         <small class="text-muted">@follower.Username</small>
@@ -371,8 +423,9 @@ else
                         <div class="list-group">
                             @foreach (var following in _following)
                             {
-                                <a href="/profile/@following.Id" class="list-group-item list-group-item-action d-flex align-items-center gap-3">
-                                    <ProfileImage User="@following" Size="40" clazz="rounded-circle" />
+                                <a href="/profile/@following.Id"
+                                   class="list-group-item list-group-item-action d-flex align-items-center gap-3">
+                                    <ProfileImage User="@following" Size="40" clazz="rounded-circle"/>
                                     <div>
                                         <h6 class="mb-0">@following.FirstName @following.LastName</h6>
                                         <small class="text-muted">@following.Username</small>
@@ -397,6 +450,7 @@ else
     .nav-tabs {
         scrollbar-width: none;
     }
+
     /* For WebKit */
     .nav-tabs::-webkit-scrollbar {
         display: none;
@@ -482,7 +536,7 @@ else
     .modal-content {
         cursor: default;
         border-radius: 12px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     }
 
     .modal-header {
@@ -520,7 +574,7 @@ else
         left: 0;
         right: 0;
         bottom: 0;
-        background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.4));
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4));
     }
 
     /* Adjust profile section position */

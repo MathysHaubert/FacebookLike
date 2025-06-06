@@ -2,9 +2,13 @@
 @rendermode InteractiveServer
 @using FacebookLike.Neo4j.Node
 @using FacebookLike.Service
+@using Microsoft.AspNetCore.SignalR
 @inject INotificationService NotificationService
 @inject IAuthService AuthService
-@inject NavigationManager NavigationManager
+@inject IHubContext<NotificationHub> _notificationHubContext
+@inject IJSRuntime JS
+
+@implements IAsyncDisposable
 
 @code {
     private List<Notification> _notifications = new();
@@ -18,8 +22,33 @@
         {
             _notifications = await NotificationService.GetNotificationsAsync(_currentUser.Id);
             await NotificationService.MarkAllAsReadAsync(_currentUser.Id);
+            
+            var unreadCount = await NotificationService.GetUnreadCountAsync(_currentUser.Id);
+            await _notificationHubContext.Clients.All
+                .SendAsync("UpdateNotificationCount", _currentUser.Id, unreadCount);
         }
         _isLoading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("registerConversationFocus", DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnPageFocus()
+    {
+        if (_currentUser != null)
+        {
+            await NotificationService.MarkAllAsReadAsync(_currentUser.Id);
+            var unreadCount = await NotificationService.GetUnreadCountAsync(_currentUser.Id);
+            await _notificationHubContext.Clients.All
+                .SendAsync("UpdateNotificationCount", _currentUser.Id, unreadCount);
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task MarkAsRead(string notificationId)
@@ -33,6 +62,12 @@
                 notification.IsRead = true;
             }
         }
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        // Cleanup if necessary
+        await Task.CompletedTask;
     }
 }
 

@@ -41,6 +41,15 @@ public class UserRepository(IGraphClient client)
             .ResultsAsync;
         return user.SingleOrDefault();
     }
+    
+    public async Task<List<User>> GetAll()
+    {
+        var users = await client.Cypher
+            .Match("(u:User)")
+            .Return(u => u.As<User>())
+            .ResultsAsync;
+        return users.ToList();
+    }
 
     public async Task<bool> UsernameExists(string username)
     {
