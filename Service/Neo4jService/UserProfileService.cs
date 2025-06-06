@@ -1,86 +1,105 @@
 ﻿using FacebookLike.Models;
-using FacebookLike.Neo4j.Node;
 using FacebookLike.Repository;
-using FacebookLike.Service.Security; // ou autre si besoin
+using Microsoft.AspNetCore.SignalR;
+using FacebookLike.Service; // For NotificationHub
 
 namespace FacebookLike.Service.Neo4jService
 {
     public class UserProfileService
     {
         private readonly UserRepository _userRepository;
-        private readonly IAuthService _authService;
+        private readonly UserRelationRepository _userRelationRepository;
+        private readonly PostRepository _postRepository;
+        private readonly IHubContext<NotificationHub> _notificationHubContext;
+        private readonly INotificationService _notificationService;
 
-        public UserProfileService(UserRepository userRepository, IAuthService authService)
+        public UserProfileService(
+            UserRepository userRepository,
+            UserRelationRepository userRelationRepository,
+            PostRepository postRepository,
+            IHubContext<NotificationHub> notificationHubContext,
+            INotificationService notificationService
+        )
         {
             _userRepository = userRepository;
-            _authService   = authService;
+            _userRelationRepository = userRelationRepository;
+            _postRepository = postRepository;
+            _notificationHubContext = notificationHubContext;
+            _notificationService = notificationService;
         }
 
-        public async Task<UserProfile?> GetProfileAsync(string username)
+        public async Task<UserDetails> GetProfileAsync(string userId, string currentUserId)
         {
-            var userNode = await _userRepository.GetByUsername(username);
+            var userNode = await _userRepository.GetById(userId);
+            
             if (userNode is null)
                 return null;
+            
+            // Récupération des posts de l'utilisateur
+            var posts = await _postRepository.GetPostsByUserIdAsync(userId, currentUserId);
 
-            // On mappe les champs Neo4j → DTO UserProfile
-            return new UserProfile
+            return new UserDetails
             {
-                UserName     = userNode.Username,
-                AvatarUrl    = userNode.ProfileImageUrl,
-                CoverUrl     = userNode.CoverImageUrl,
-                Work         = userNode.Work,
-                WorksAt      = userNode.WorksAt,
-                Studies      = userNode.Studies,
-                LivesIn      = userNode.LivesIn,
-                From         = userNode.From,
-                Relationship = userNode.Relationship,
-                Followers    = await _userRepository.GetFollowersCount(userNode.Id)
+                User = userNode,
+                FollowersCount = await _userRelationRepository.GetFollowersCount(userNode.Id),
+                FollowingCount = await _userRelationRepository.GetFollowingCount(userNode.Id),
+                Posts = posts,
             };
         }
 
         /// <summary>
-        /// Vérifie si l’utilisateur courant (issu du contexte d’authentification) suit déjà le profil spécifié.
+        /// Vérifie si l'utilisateur courant (issu du contexte d'authentification) suit déjà le profil spécifié.
         /// </summary>
-        public async Task<bool> IsFollowingAsync(string currentUserId, string usernameToFollow)
+        public async Task<bool> IsFollowingAsync(string currentUserId, string userId)
         {
-            if (string.IsNullOrEmpty(currentUserId) || string.IsNullOrEmpty(usernameToFollow))
-                return false;
-
-            var target = await _userRepository.GetByUsername(usernameToFollow);
-            if (target is null)
-                return false;
-
-            return await _userRepository.IsFollowing(currentUserId, target.Id);
+            return await _userRelationRepository.IsFollowing(currentUserId, userId);
         }
 
         /// <summary>
         /// Ajoute une relation de follow entre currentUserId → usernameToFollow.
         /// </summary>
-        public async Task FollowAsync(string currentUserId, string usernameToFollow)
+        public async Task FollowAsync(string currentUserId, string userId)
         {
-            if (string.IsNullOrEmpty(currentUserId) || string.IsNullOrEmpty(usernameToFollow))
-                return;
+            await _userRelationRepository.CreateFriendship(currentUserId, userId);
 
-            var target = await _userRepository.GetByUsername(usernameToFollow);
-            if (target is null || currentUserId == target.Id)
-                return;
-
-            await _userRepository.CreateFollow(currentUserId, target.Id);
+            // Get sender user for notification message
+            var sender = await _userRepository.GetById(currentUserId);
+            if (sender != null)
+            {
+                var message = $"{sender.FirstName} {sender.LastName} started following you.";
+                var notification = await _notificationService.CreateNotificationAsync(
+                    userId,
+                    currentUserId,
+                    "FOLLOW",
+                    message 
+                );
+                
+                // Send SignalR notification
+                await _notificationHubContext.Clients.All
+                    .SendAsync("ReceiveNotification", notification);
+                
+                var unreadCount = await _notificationService.GetUnreadCountAsync(userId);
+                await _notificationHubContext.Clients.All
+                    .SendAsync("UpdateNotificationCount", userId, unreadCount);
+            }
         }
 
         /// <summary>
         /// Supprime la relation de follow entre currentUserId → usernameToFollow.
         /// </summary>
-        public async Task UnfollowAsync(string currentUserId, string usernameToFollow)
+        public async Task UnfollowAsync(string currentUserId, string userId)
         {
-            if (string.IsNullOrEmpty(currentUserId) || string.IsNullOrEmpty(usernameToFollow))
-                return;
-
-            var target = await _userRepository.GetByUsername(usernameToFollow);
-            if (target is null || currentUserId == target.Id)
-                return;
-
-            await _userRepository.RemoveFollow(currentUserId, target.Id);
+            await _userRelationRepository.DeleteFriendship(currentUserId, userId);
+        }
+        
+        public async Task<List<User>> GetFollowersAsync(string userId)
+        {
+            return await _userRelationRepository.GetFollowers(userId);
+        }
+        
+        public async Task<List<User>> GetFollowingAsync(string userId)
+        {
+            return await _userRelationRepository.GetFollowing(userId);
         }
     }
 }
