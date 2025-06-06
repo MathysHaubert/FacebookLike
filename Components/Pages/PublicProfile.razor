@@ -13,14 +13,14 @@
     private UserProfile? Profile;
     private bool _isLoading = true;
     private bool _isFollowing = false;
-    private string? _currentUserId;
+    private User _currentUser;
 
     protected override async Task OnParametersSetAsync()
     {
         _isLoading = true;
         Profile = null;
         _isFollowing = false;
-        _currentUserId = null;
+        _currentUser = null;
 
         if (!string.IsNullOrEmpty(Username))
         {
@@ -30,25 +30,25 @@
             // 2) Récupérer l'utilisateur connecté (peut être null si personne n'est loggé)
             try
             {
-                var currentUser = AuthService.CurrentUser;
+                var currentUser = await AuthService.GetCurrentUserAsync();
                 if (currentUser is not null)
                 {
-                    _currentUserId = currentUser.Id;
+                    _currentUser = currentUser;
                 }
             }
             catch
             {
                 // S'il y a un accès inattendu à AuthService.CurrentUser, on ignore
-                _currentUserId = null;
+                _currentUser = null;
             }
 
             // 3) Si on a un utilisateur connecté ET qu'il ne consulte pas son propre profil,
             //    vérifier s'il suit déjà ce profil (pour ajuster le texte du bouton)
-            if (!string.IsNullOrEmpty(_currentUserId)
-                && Profile is not null
-                && _currentUserId != Profile.UserName)
+            if(
+                 Profile is not null
+                && _currentUser.Id != Profile.UserName)
             {
-                _isFollowing = await ProfileService.IsFollowingAsync(_currentUserId, Username);
+                _isFollowing = await ProfileService.IsFollowingAsync(_currentUser.Id, Username);
             }
         }
 
@@ -58,7 +58,7 @@
     private async Task OnFollowButtonClicked()
     {
         if (Profile is null 
-            || string.IsNullOrEmpty(_currentUserId) 
+            || string.IsNullOrEmpty(_currentUser.Id) 
             || string.IsNullOrEmpty(Profile.UserName))
         {
             return;
@@ -67,13 +67,13 @@
         if (_isFollowing)
         {
             // Se désabonner
-            await ProfileService.UnfollowAsync(_currentUserId, Profile.UserName);
+            await ProfileService.UnfollowAsync(_currentUser.Id, Profile.UserName);
             _isFollowing = false;
         }
         else
         {
             // S'abonner
-            await ProfileService.FollowAsync(_currentUserId, Profile.UserName);
+            await ProfileService.FollowAsync(_currentUser.Id, Profile.UserName);
             _isFollowing = true;
         }
 
@@ -119,9 +119,7 @@ else
                 <div class="mt-3 mt-md-0 d-flex gap-2">
                     @* N’afficher le bouton Que si on est connecté 
                        et qu’on ne consulte pas son propre profil *@
-                    @if (!string.IsNullOrEmpty(_currentUserId) 
-                         && _currentUserId != Profile.UserName)
-                    {
+                    
                         <button class="btn btn-primary d-flex align-items-center gap-1"
                                 @onclick="OnFollowButtonClicked">
                             @if (_isFollowing)
@@ -135,7 +133,6 @@ else
                                 <text>Suivre</text>
                             }
                         </button>
-                    }
 
                     <button class="btn btn-outline-secondary d-flex align-items-center gap-1">
                         <i class="bi bi-search"></i> Rechercher
