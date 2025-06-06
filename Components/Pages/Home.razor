@@ -91,9 +91,15 @@
         StateHasChanged();
     }
 
-    private void AddOrRemoveLike(Post post)
+    private async Task AddOrRemoveLike(Post post)
     {
-        // PostService.AddOrRemoveLike(post);
+        var user = currentUser;
+        if (user == null) return;
+        await PostService.ToggleLikeAsync(post.Id, user.Id);
+        var updated = await PostService.GetPostByIdAsync(post.Id, user.Id);
+        var index = _posts.FindIndex(p => p.Post.Id == post.Id);
+        _posts[index] = updated;
+        StateHasChanged();
     }
 
     // Infinite scroll

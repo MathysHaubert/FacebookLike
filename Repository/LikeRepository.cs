@@ -4,17 +4,11 @@ using System.Threading.Tasks;
 
 namespace FacebookLike.Repository
 {
-    public class LikeRepository
+    public class LikeRepository(IGraphClient client)
     {
-        private readonly IGraphClient _client;
-        public LikeRepository(IGraphClient client)
-        {
-            _client = client;
-        }
-
         public async Task AddLike(string postId, string userId)
         {
-            await _client.Cypher
+            await client.Cypher
                 .Match("(u:User {Id: $userId}), (p:Post {Id: $postId})")
                 .WithParam("userId", userId)
                 .WithParam("postId", postId)
@@ -24,7 +18,7 @@ namespace FacebookLike.Repository
 
         public async Task RemoveLike(string postId, string userId)
         {
-            await _client.Cypher
+            await client.Cypher
                 .Match("(u:User {Id: $userId})-[l:LIKED]->(p:Post {Id: $postId})")
                 .WithParam("userId", userId)
                 .WithParam("postId", postId)
@@ -34,7 +28,7 @@ namespace FacebookLike.Repository
 
         public async Task<long> GetLikesCountByPost(string postId)
         {
-            var result = await _client.Cypher
+            var result = await client.Cypher
                 .Match("(u:User)-[l:LIKED]->(p:Post {Id: $postId})")
                 .WithParam("postId", postId)
                 .Return(l => l.Count())
@@ -44,7 +38,7 @@ namespace FacebookLike.Repository
 
         public async Task<bool> HasUserLiked(string postId, string userId)
         {
-            var result = await _client.Cypher
+            var result = await client.Cypher
                 .Match("(u:User {Id: $userId})-[l:LIKED]->(p:Post {Id: $postId})")
                 .WithParam("userId", userId)
                 .WithParam("postId", postId)
