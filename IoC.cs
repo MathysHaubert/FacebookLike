@@ -27,6 +27,8 @@ namespace FacebookLike
             services.AddScoped<IMessageService, MessageService>();
             services.AddScoped<IFriendService, FriendService>();
           
+            services.AddScoped<UserProfileService>();
+            
             return services;
         }
     }
