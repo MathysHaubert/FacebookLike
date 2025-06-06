@@ -1,0 +1,77 @@
+@page "/search"
+@rendermode InteractiveServer
+@using FacebookLike.Neo4j.Node
+@using FacebookLike.Repository
+@using FacebookLike.Service
+@inject IAuthService AuthService
+@inject IFriendService FriendService
+@inject UserRepository UserRepository
+
+<RequireAuth>
+<div class="search-bg min-vh-100 py-3 d-flex flex-column align-items-center w-100">
+    <div class="w-100" style="max-width: 900px;">
+        <div class="search-card card border-0 shadow-sm rounded-4 mb-3 w-100">
+            <div class="card-body p-3 p-md-4">
+                <h2 class="card-title mb-2" style="font-weight: 600; color: #2d3a4a;">
+                    <i class="bi bi-search me-2"></i>Find People
+                </h2>
+                <p class="text-muted mb-3" style="font-size: 1.08rem;">Search for people by name or username to connect with them.</p>
+                <UserSearch />
+            </div>
+        </div>
+
+        @if (_suggestedUsers.Any())
+        {
+            <div class="suggestions-card card border-0 shadow-sm rounded-4 w-100">
+                <div class="card-body p-3 p-md-4">
+                    <h3 class="card-title mb-3" style="font-weight: 600; color: #2d3a4a;">
+                        <i class="bi bi-people me-2"></i>Suggested Connections
+                    </h3>
+                    <div class="row g-2 g-md-3">
+                        @foreach (var user in _suggestedUsers)
+                        {
+                            <div class="col-12 col-sm-6 col-lg-4">
+                                <div class="user-suggestion-card card border-0 rounded-4 shadow-xs mb-2 h-100 px-2 py-2 d-flex flex-row align-items-center" style="background: #f5f7fa; transition: box-shadow 0.18s, transform 0.18s; min-height: 80px;">
+                                    <ProfileImage User="user" Size="44" clazz="me-3 border border-2 border-white rounded-circle" />
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold" style="color: #2d3a4a;">@user.FirstName @user.LastName</div>
+                                        <div class="text-muted small mb-1">@user.Username</div>
+                                        <a href="/profile/@user.Id" class="btn btn-sm btn-pastel-blue rounded-pill px-3 py-1">
+                                            <i class="bi bi-person-plus me-1"></i>View Profile
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+</RequireAuth>
+
+@code {
+    private List<User> _suggestedUsers = new();
+    private User? _currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentUser = await AuthService.GetCurrentUserAsync();
+        if (_currentUser != null)
+        {
+            // Get users who are not friends and not the current user
+            var friends = await FriendService.GetFriendsAsync(_currentUser.Id);
+            var friendIds = friends.Select(f => f.Id).ToHashSet();
+            friendIds.Add(_currentUser.Id);
+
+            // Get all users and filter out friends and current user
+            var allUsers = await UserRepository.GetAll();
+            _suggestedUsers = allUsers
+                .Where(u => !friendIds.Contains(u.Id))
+                .OrderBy(u => Guid.NewGuid()) // Randomize the order
+                .Take(6) // Show only 6 suggestions
+                .ToList();
+        }
+    }
+} 

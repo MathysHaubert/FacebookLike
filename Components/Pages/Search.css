@@ -1,0 +1,43 @@
+﻿.search-bg {
+    background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+    min-height: 100vh;
+}
+.search-card, .suggestions-card {
+    background: #fafdff;
+}
+.user-suggestion-card {
+    background: #f5f7fa;
+    border: 1px solid #e3e8ee;
+}
+.user-suggestion-card:hover {
+    box-shadow: 0 4px 18px 0 rgba(80,120,200,0.10), 0 1.5px 6px 0 rgba(80,120,200,0.06);
+    transform: translateY(-1px) scale(1.012);
+    background: #e9f2fb;
+}
+.btn-pastel-blue {
+    background: #e3f0ff;
+    color: #2563eb;
+    border: 1px solid #b6d4fe;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+}
+.btn-pastel-blue:hover {
+    background: #d0e7ff;
+    color: #174ea6;
+    border: 1px solid #90c2f8;
+}
+
+
+@media (max-width: 767px) {
+    .search-card, .suggestions-card {
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+    .search-bg {
+        padding: 0 !important;
+    }
+    .user-suggestion-card {
+        min-height: 70px;
+        padding: 8px 8px !important;
+    }
+}

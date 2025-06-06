@@ -86,7 +86,7 @@ namespace FacebookLike.Repository
         {
             await _client.Cypher
                 .Match("(n:Notification)-[:SENT_TO]->(u:User {Id: $userId})")
-                .Set("n.isRead = true")
+                .Set("n.IsRead = true")
                 .WithParams(new { userId })
                 .ExecuteWithoutResultsAsync();
         }

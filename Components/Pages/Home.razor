@@ -7,6 +7,7 @@
 @inject IPostService PostService
 @inject IAuthService AuthService
 @inject IJSRuntime JS
+@inject IFriendService FriendService
 
 <script src="/js/infiniteScroll.js"></script>
 <RequireAuth>
@@ -24,23 +25,40 @@
             else
             {
                 <PostCreate CurrentUser="currentUser" OnCreatePost="CreatePost" />
-                <PostList 
-                    Posts="_posts"
-                    CurrentUser="currentUser"
-                />
-                @if (_isLoading && _posts.Count > 0)
+                
+                @if (_posts.Count == 0)
                 {
-                    <div class="d-flex justify-content-center my-3">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                    <div class="card shadow-sm mt-4">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-newspaper fs-1 text-muted mb-3"></i>
+                            <h4 class="mb-3">No Posts to Show</h4>
+                            <p class="text-muted mb-4">Be the first to share something with your friends!</p>
+                            <a href="/search" class="btn btn-primary">
+                                <i class="bi bi-search me-2"></i>Find Friends
+                            </a>
                         </div>
                     </div>
                 }
-                @if (!_hasMore)
+                else
                 {
-                    <div class="text-center">
-                        <p class="text-muted mb-0">You have reached the end of the feed.</p>
-                    </div>
+                    <PostList 
+                        Posts="_posts"
+                        CurrentUser="currentUser"
+                    />
+                    @if (_isLoading && _posts.Count > 0)
+                    {
+                        <div class="d-flex justify-content-center my-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    }
+                    @if (!_hasMore)
+                    {
+                        <div class="text-center">
+                            <p class="text-muted mb-0">You have reached the end of the feed.</p>
+                        </div>
+                    }
                 }
             }
         </div>

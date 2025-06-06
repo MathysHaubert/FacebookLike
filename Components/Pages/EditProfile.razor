@@ -1,0 +1,343 @@
+@page "/edit-profile"
+@rendermode InteractiveServer
+@using FacebookLike.Service
+@using FacebookLike.Neo4j.Node
+@inject IAuthService AuthService
+@inject IUserService UserService
+@inject NavigationManager NavigationManager
+
+<RequireAuth>
+    @if (user == null)
+    {
+        <div class="container mt-5">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title mb-4 d-flex align-items-center">
+                        <span class="placeholder-glow">
+                            <span class="placeholder col-6" style="height:2.5rem;"></span>
+                        </span>
+                        <span class="spinner-border spinner-border-sm ms-3" role="status" aria-hidden="true"></span>
+                    </h2>
+                    <div class="d-flex align-items-center mb-4">
+                        <span class="placeholder rounded-circle me-3"
+                              style="width:100px; height:100px; display:inline-block;"></span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <span class="placeholder col-12" style="height:2rem;"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="placeholder col-12" style="height:2rem;"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="container mt-5">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="card shadow">
+                        <div class="card-header bg-primary text-white">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <h2 class="card-title mb-0">
+                                    <i class="bi bi-person-circle me-2"></i>
+                                    Edit Profile
+                                </h2>
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                }
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            @if (message != null)
+                            {
+                                <div class="alert @(isSuccess ? "alert-success" : "alert-danger") mt-3" role="alert">
+                                    <i class="bi @(isSuccess ? "bi-check-circle" : "bi-exclamation-circle") me-2"></i>
+                                    @message
+                                </div>
+                            }
+                            
+                            <!-- Profile Image Section -->
+                            <div class="text-center mb-4">
+                                <div class="position-relative d-inline-block">
+                                    <label class="profile-image-container" style="cursor:pointer;">
+                                        <InputFile type="file" accept="image/*" style="display:none;"
+                                                   OnChange="HandleFileSelected"/>
+                                        <ProfileImage User="user" Size="150" clazz="rounded-circle border border-3 border-primary"/>
+
+                                        @if (!string.IsNullOrEmpty(user?.ProfileImageUrl))
+                                        {
+                                            <button
+                                                type="button"
+                                                class="btn btn-danger btn-sm position-absolute top-0 end-0 rounded-circle"
+                                                style="z-index:2;"
+                                                @onclick="RemoveProfileImage"
+                                                disabled="@isLoading">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        }
+                                    </label>
+                                </div>
+                                <p class="text-muted mt-2">Click to change profile picture</p>
+                            </div>
+
+                            <!-- Form Sections -->
+                            <div class="row g-4">
+                                <!-- Basic Information -->
+                                <div class="col-12">
+                                    <div class="card bg-light">
+                                        <div class="card-header">
+                                            <h5 class="mb-0"><i class="bi bi-person-vcard me-2"></i>Basic Information</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label"><i class="bi bi-person me-1"></i>First Name</label>
+                                                    <input type="text" class="form-control" @bind="user.FirstName"/>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label"><i class="bi bi-person me-1"></i>Last Name</label>
+                                                    <input type="text" class="form-control" @bind="user.LastName"/>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label"><i class="bi bi-envelope me-1"></i>Email</label>
+                                                    <input type="email" class="form-control" @bind="user.Email"/>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label"><i class="bi bi-person-badge me-1"></i>Username</label>
+                                                    <input type="text" class="form-control" @bind="user.Username"/>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label"><i class="bi bi-gender-ambiguous me-1"></i>Gender</label>
+                                                    <select class="form-select" @bind="user.Gender">
+                                                        @foreach (var option in GetGenderOptions())
+                                                        {
+                                                            <option value="@option">@option</option>
+                                                        }
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label"><i class="bi bi-calendar-date me-1"></i>Date of Birth</label>
+                                                    <input type="date" class="form-control" @bind="user.DateOfBirth"/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- About Me -->
+                                <div class="col-12">
+                                    <div class="card bg-light">
+                                        <div class="card-header">
+                                            <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>About Me</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label class="form-label"><i class="bi bi-chat-square-text me-1"></i>Bio</label>
+                                                <textarea class="form-control" @bind="user.Bio" rows="3" 
+                                                          placeholder="Tell us about yourself..."></textarea>
+                                            </div>
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label"><i class="bi bi-briefcase me-1"></i>Work</label>
+                                                    <input type="text" class="form-control" @bind="user.Work"
+                                                           placeholder="Your profession"/>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label"><i class="bi bi-building me-1"></i>Works At</label>
+                                                    <input type="text" class="form-control" @bind="user.WorksAt"
+                                                           placeholder="Your company"/>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label"><i class="bi bi-book me-1"></i>Studies</label>
+                                                    <input type="text" class="form-control" @bind="user.Studies"
+                                                           placeholder="Your education"/>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label"><i class="bi bi-geo-alt me-1"></i>Lives In</label>
+                                                    <input type="text" class="form-control" @bind="user.LivesIn"
+                                                           placeholder="Your location"/>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label"><i class="bi bi-heart me-1"></i>Relationship Status</label>
+                                                    <select class="form-select" @bind="user.Relationship">
+                                                        <option value="">Not specified</option>
+                                                        <option value="Single">Single</option>
+                                                        <option value="In a relationship">In a relationship</option>
+                                                        <option value="Married">Married</option>
+                                                        <option value="Divorced">Divorced</option>
+                                                        <option value="Widowed">Widowed</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Privacy Settings -->
+                                <div class="col-12">
+                                    <div class="card bg-light">
+                                        <div class="card-header">
+                                            <h5 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Privacy Settings</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label class="form-label"><i class="bi bi-eye me-1"></i>Profile Visibility</label>
+                                                <select class="form-select" @bind="user.PrivacyLevel">
+                                                    <option value="@PrivacyLevel.Public">Public - Anyone can view your profile</option>
+                                                    <option value="@PrivacyLevel.FriendsOnly">Friends Only - Only your friends can view your profile</option>
+                                                    <option value="@PrivacyLevel.Private">Private - Only you can view your profile</option>
+                                                </select>
+                                                <small class="text-muted mt-2 d-block">
+                                                    <i class="bi bi-info-circle me-1"></i>
+                                                    This setting controls who can view your profile information. Your name and profile picture will always be visible.
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="d-flex justify-content-between align-items-center mt-4">
+                                <button type="button" class="btn btn-outline-secondary"
+                                        @onclick="@(() => NavigationManager.NavigateTo($"/profile/{user.Id}"))">
+                                    <i class="bi bi-arrow-left me-1"></i>Back to Profile
+                                </button>
+                                <button type="button" class="@GetButtonClass()" @onclick="SaveChanges">
+                                    @if (isLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"
+                                              aria-hidden="true"></span>
+                                        @:Saving...
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-check2 me-1"></i>
+                                        @:Save Changes
+                                    }
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</RequireAuth>
+
+<style>
+    .profile-image-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--bs-primary);
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+</style>
+
+@code {
+    private User? user;
+    private bool isLoading = false;
+    private bool isSuccess = false;
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await AuthService.GetCurrentUserAsync();
+    }
+
+    private List<string> GetGenderOptions()
+    {
+        var allOptions = new List<string> { "Male", "Female", "Not specified" };
+        if (string.IsNullOrEmpty(user?.Gender) || !allOptions.Contains(user.Gender))
+        {
+            return allOptions;
+        }
+
+        return new List<string> { user.Gender }.Concat(allOptions.Where(g => g != user.Gender)).ToList();
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        if (e.FileCount > 0)
+        {
+            isLoading = true;
+            StateHasChanged();
+            IBrowserFile newProfileImage = e.GetMultipleFiles(1).FirstOrDefault();
+            if (newProfileImage != null)
+            {
+                var stream = newProfileImage.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10 MB max
+                var imageUrl = await UserService.UploadProfileImageAsync(user.Id, stream, newProfileImage.Name);
+                if (!string.IsNullOrEmpty(imageUrl))
+                {
+                    user.ProfileImageUrl = imageUrl;
+                }
+            }
+
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveChanges()
+    {
+        if (user == null)
+            return;
+
+        isLoading = true;
+        isSuccess = false;
+        message = null;
+
+        try
+        {
+            await UserService.UpdateUserAsync(user);
+            message = "Profile updated successfully!";
+            isSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            message = $"Error: {ex.Message}";
+            isSuccess = false;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetButtonClass()
+    {
+        if (isSuccess)
+            return "btn btn-success";
+        return "btn btn-primary";
+    }
+
+    private async Task RemoveProfileImage()
+    {
+        if (user == null) return;
+        isLoading = true;
+        StateHasChanged();
+        user.ProfileImageUrl = null;
+        try
+        {
+            await UserService.UpdateUserAsync(user);
+            message = "Profile image removed successfully.";
+            isSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            message = $"Error while removing image: {ex.Message}";
+            isSuccess = false;
+        }
+
+        isLoading = false;
+        StateHasChanged();
+    }
+} 

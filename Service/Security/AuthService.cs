@@ -78,8 +78,6 @@ public class AuthService : IAuthService
             DateOfBirth = dateOfBirth
         };
         await _userRepository.Create(newUser);
-        // Optionnel : auto-login après inscription
-        await Authenticate(email, password);
         return true;
     }
 

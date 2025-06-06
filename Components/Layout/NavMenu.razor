@@ -40,7 +40,7 @@
                 </NavLink>
             </div>
             <div class="nav-item px-3 flex-grow-1">
-                <NavLink class="nav-link d-flex align-items-center gap-2" href="my-profile">
+                <NavLink class="nav-link d-flex align-items-center gap-2" onclick="@GoToMyProfile">
                     <span class="bi bi-person-circle-nav-menu nav-icon" aria-hidden="true"></span>
                     <span>My profile</span>
                 </NavLink>
@@ -250,6 +250,12 @@
         if (currentUser == null) return;
         var conversation = await MessageService.GetOrCreateConversationAsync(currentUser.Id, friendId);
         navigationManager.NavigateTo($"/conversation/{conversation.Id}");
+    }
+    
+    private async Task GoToMyProfile()
+    {
+        if (currentUser == null) return;
+        navigationManager.NavigateTo($"/profile/{currentUser.Id}");
     }
 
     private async void Logout()
