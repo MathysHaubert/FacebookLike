@@ -1,57 +1,98 @@
 ﻿@page "/profile/{Username}"
 @using System.Globalization
-@inject NavigationManager Navigation
-
-@inherits OwningComponentBase
+@using FacebookLike.Models
+@using FacebookLike.Service.Neo4jService
+@using FacebookLike.Service.Security
+@inject UserProfileService ProfileService
+@inject IAuthService AuthService
 
 @code {
     [Parameter]
     public string? Username { get; set; }
 
     private UserProfile? Profile;
+    private bool _isLoading = true;
+    private bool _isFollowing = false;
+    private string? _currentUserId;
 
     protected override async Task OnParametersSetAsync()
     {
-        // TODO: Inject a real service that loads a profile from Neo4j or API
-        // For now, we mock the data so the UI renders while you wire up the backend.
-        Profile = await Task.FromResult(MockData());
+        _isLoading = true;
+        Profile = null;
+        _isFollowing = false;
+        _currentUserId = null;
+
+        if (!string.IsNullOrEmpty(Username))
+        {
+            // 1) Charger le profil public du Username
+            Profile = await ProfileService.GetProfileAsync(Username);
+
+            // 2) Récupérer l'utilisateur connecté (peut être null si personne n'est loggé)
+            try
+            {
+                var currentUser = AuthService.CurrentUser;
+                if (currentUser is not null)
+                {
+                    _currentUserId = currentUser.Id;
+                }
+            }
+            catch
+            {
+                // S'il y a un accès inattendu à AuthService.CurrentUser, on ignore
+                _currentUserId = null;
+            }
+
+            // 3) Si on a un utilisateur connecté ET qu'il ne consulte pas son propre profil,
+            //    vérifier s'il suit déjà ce profil (pour ajuster le texte du bouton)
+            if (!string.IsNullOrEmpty(_currentUserId)
+                && Profile is not null
+                && _currentUserId != Profile.UserName)
+            {
+                _isFollowing = await ProfileService.IsFollowingAsync(_currentUserId, Username);
+            }
+        }
+
+        _isLoading = false;
     }
 
-    private static UserProfile MockData() => new()
+    private async Task OnFollowButtonClicked()
     {
-        UserName = "Profile 1",
-        AvatarUrl = "https://i.pravatar.cc/300?img=5",
-        CoverUrl = "https://images.unsplash.com/photo-1522199828086-5fc92d019696?w=1600&q=80",
-        Followers = 120_000_000,
-        Bio = "Bringing the world closer together.",
-        Work = "Founder and CEO, Meta",
-        WorksAt = "Chan Zuckerberg Initiative",
-        Studies = "Computer Science and Psychology at Harvard University",
-        LivesIn = "Palo Alto",
-        From = "Dobbs Ferry",
-        Relationship = "Marié à Priscilla Chan"
-    };
+        if (Profile is null 
+            || string.IsNullOrEmpty(_currentUserId) 
+            || string.IsNullOrEmpty(Profile.UserName))
+        {
+            return;
+        }
 
-    private sealed record UserProfile
-    {
-        public string? UserName { get; init; }
-        public string? AvatarUrl { get; init; }
-        public string? CoverUrl { get; init; }
-        public long Followers { get; init; }
-        public string? Bio { get; init; }
-        public string? Work { get; init; }
-        public string? WorksAt { get; init; }
-        public string? Studies { get; init; }
-        public string? LivesIn { get; init; }
-        public string? From { get; init; }
-        public string? Relationship { get; init; }
+        if (_isFollowing)
+        {
+            // Se désabonner
+            await ProfileService.UnfollowAsync(_currentUserId, Profile.UserName);
+            _isFollowing = false;
+        }
+        else
+        {
+            // S'abonner
+            await ProfileService.FollowAsync(_currentUserId, Profile.UserName);
+            _isFollowing = true;
+        }
+
+        // 4) Rafraîchir le compteur de followers
+        Profile = await ProfileService.GetProfileAsync(Username);
     }
 }
 
-@if (Profile is null)
+@if (_isLoading)
 {
     <div class="text-center mt-5">
         <div class="spinner-border" role="status"></div>
+    </div>
+}
+else if (Profile is null)
+{
+    <div class="text-center mt-5">
+        <h4>Profil introuvable</h4>
+        <p>L'utilisateur <strong>@Username</strong> n'existe pas ou a été supprimé.</p>
     </div>
 }
 else
@@ -59,21 +100,43 @@ else
     <div class="profile-page">
         <!-- Cover & Avatar -->
         <div class="position-relative">
-            <img src="@Profile.CoverUrl" class="img-fluid w-100" style="height: 320px; object-fit: cover;" />
-            <img src="@Profile.AvatarUrl" class="rounded-circle position-absolute top-100 start-0 translate-middle ms-4 border border-3 border-white bg-white shadow" style="width: 168px; height: 168px; object-fit: cover;" />
+            <img src="@Profile.CoverUrl" class="w-100" style="height: 300px; object-fit: cover;" />
+            <img src="@Profile.AvatarUrl"
+                 class="rounded-circle position-absolute"
+                 style="width: 120px; height: 120px; bottom: -60px; left: 20px; object-fit: cover; border: 4px solid white;" />
         </div>
 
-        <!-- Name, followers & action buttons -->
+        <!-- Nom, followers et bouton Suivre/Abonné -->
         <div class="container mt-5">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-end">
                 <div>
                     <h2 class="mb-1 fw-bold">@Profile.UserName</h2>
-                    <small class="text-muted">@Profile.Followers.ToString("N0", CultureInfo.InvariantCulture) followers</small>
+                    <small class="text-muted">
+                        @Profile.Followers.ToString("N0", CultureInfo.InvariantCulture) followers
+                    </small>
                 </div>
+
                 <div class="mt-3 mt-md-0 d-flex gap-2">
-                    <button class="btn btn-primary d-flex align-items-center gap-1">
-                        <i class="bi bi-person-plus-fill"></i> Suivre
-                    </button>
+                    @* N’afficher le bouton Que si on est connecté 
+                       et qu’on ne consulte pas son propre profil *@
+                    @if (!string.IsNullOrEmpty(_currentUserId) 
+                         && _currentUserId != Profile.UserName)
+                    {
+                        <button class="btn btn-primary d-flex align-items-center gap-1"
+                                @onclick="OnFollowButtonClicked">
+                            @if (_isFollowing)
+                            {
+                                <i class="bi bi-person-check-fill"></i>
+                                <text>Abonné</text>
+                            }
+                            else
+                            {
+                                <i class="bi bi-person-plus-fill"></i>
+                                <text>Suivre</text>
+                            }
+                        </button>
+                    }
+
                     <button class="btn btn-outline-secondary d-flex align-items-center gap-1">
                         <i class="bi bi-search"></i> Rechercher
                     </button>
@@ -83,7 +146,7 @@ else
                 </div>
             </div>
 
-            <!-- Navigation tabs -->
+            <!-- Onglets de navigation (Publications, À propos, etc.) -->
             <ul class="nav nav-tabs mt-4 overflow-auto" style="scrollbar-width: none;">
                 <li class="nav-item"><a class="nav-link active" href="#">Publications</a></li>
                 <li class="nav-item"><a class="nav-link" href="#">À propos</a></li>
@@ -93,88 +156,61 @@ else
                 <li class="nav-item"><a class="nav-link" href="#">Vidéos</a></li>
                 <li class="nav-item"><a class="nav-link" href="#">Plus <i class="bi bi-caret-down-fill small"></i></a></li>
             </ul>
-        </div>
 
-        <!-- Main layout: Sidebar & Feed -->
-        <div class="container mt-4">
-            <div class="row gy-4">
-                <!-- Sidebar -->
-                <aside class="col-lg-4 col-xl-3">
-                    <div class="card shadow-sm">
-                        <div class="card-body">
-                            <h6 class="fw-bold">Intro</h6>
-                            <p>@Profile.Bio</p>
-                            <ul class="list-unstyled small mb-0">
-                                <li class="d-flex align-items-start mb-2"><i class="bi bi-briefcase me-2"></i>@Profile.Work</li>
-                                <li class="d-flex align-items-start mb-2"><i class="bi bi-bag-check me-2"></i>Travaille chez @Profile.WorksAt</li>
-                                <li class="d-flex align-items-start mb-2"><i class="bi bi-mortarboard me-2"></i>@Profile.Studies</li>
-                                <li class="d-flex align-items-start mb-2"><i class="bi bi-geo-alt me-2"></i>Habite à @Profile.LivesIn</li>
-                                <li class="d-flex align-items-start mb-2"><i class="bi bi-geo me-2"></i>De @Profile.From</li>
-                                <li class="d-flex align-items-start"><i class="bi bi-heart me-2"></i>@Profile.Relationship</li>
-                            </ul>
-                        </div>
+            <!-- Exemple de rédaction d’un post -->
+            <div class="card shadow-sm mb-4 mt-4">
+                <div class="card-body">
+                    <textarea class="form-control mb-3" rows="3" placeholder="Que voulez-vous dire ?"></textarea>
+                    <div class="d-flex justify-content-end">
+                        <button class="btn btn-primary">Publier</button>
                     </div>
-                </aside>
-
-                <!-- Feed -->
-                <section class="col-lg-8 col-xl-9">
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-body">
-                            <h6 class="fw-bold mb-3">Nouvelle publication</h6>
-                            <textarea class="form-control mb-3" rows="3" placeholder="Que voulez‑vous dire ?"></textarea>
-                            <div class="d-flex justify-content-end">
-                                <button class="btn btn-primary">Publier</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Example post -->
-                    <article class="card shadow-sm mb-4">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-3">
-                                <img src="@Profile.AvatarUrl" class="rounded-circle me-2" style="width: 48px; height: 48px; object-fit: cover;" />
-                                <div>
-                                    <h6 class="mb-0 fw-bold">@Profile.UserName</h6>
-                                    <small class="text-muted">30 avril · 23:17 · 🌍</small>
-                                </div>
-                            </div>
-                            <p>Je viens de partager le rapport trimestriel des gains de Meta. L'IA continue de transformer tout ce que nous faisons ...</p>
-
-                            <div class="d-flex justify-content-between text-muted small border-top pt-3">
-                                <span>326 k J'aime</span>
-                                <span>125,7 k commentaires · 22 k partages</span>
-                            </div>
-                        </div>
-                        <div class="card-footer bg-white">
-                            <div class="d-flex justify-content-around">
-                                <button class="btn btn-light flex-grow-1">
-                                    <i class="bi bi-hand-thumbs-up"></i> J'aime
-                                </button>
-                                <button class="btn btn-light flex-grow-1">
-                                    <i class="bi bi-chat"></i> Commenter
-                                </button>
-                                <button class="btn btn-light flex-grow-1">
-                                    <i class="bi bi-send"></i> Envoyer
-                                </button>
-                                <button class="btn btn-light flex-grow-1">
-                                    <i class="bi bi-share"></i> Partager
-                                </button>
-                            </div>
-                        </div>
-                    </article>
-                </section>
+                </div>
             </div>
+
+            <!-- Exemple de post (statique pour l’exemple) -->
+            <article class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="@Profile.AvatarUrl" class="rounded-circle me-2" style="width: 48px; height: 48px; object-fit: cover;" />
+                        <div>
+                            <h6 class="mb-0 fw-bold">@Profile.UserName</h6>
+                            <small class="text-muted">30 avril · 23:17 · 🌍</small>
+                        </div>
+                    </div>
+                    <p>Je viens de partager le rapport sur l'IA : comment l'IA continue de transformer tout ce que nous faisons…</p>
+
+                    <div class="d-flex justify-content-between text-muted small border-top pt-3">
+                        <span>326 k J’aime</span>
+                        <span>125,7 k commentaires · 22 k partages</span>
+                    </div>
+                </div>
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-around">
+                        <button class="btn btn-light flex-grow-1">
+                            <i class="bi bi-hand-thumbs-up"></i> J’aime
+                        </button>
+                        <button class="btn btn-light flex-grow-1">
+                            <i class="bi bi-chat"></i> Commenter
+                        </button>
+                        <button class="btn btn-light flex-grow-1">
+                            <i class="bi bi-send"></i> Envoyer
+                        </button>
+                        <button class="btn btn-light flex-grow-1">
+                            <i class="bi bi-share"></i> Partager
+                        </button>
+                    </div>
+                </div>
+            </article>
         </div>
     </div>
 }
 
 <style>
-    /* Hide tab scrollbar for Firefox */
+    /* Cacher la scrollbar pour Firefox */
     .nav-tabs {
         scrollbar-width: none;
     }
-
-    /* Hide tab scrollbar for WebKit */
+    /* Pour WebKit */
     .nav-tabs::-webkit-scrollbar {
         display: none;
     }
