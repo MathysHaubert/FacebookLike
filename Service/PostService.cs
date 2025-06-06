@@ -1,5 +1,6 @@
 using FacebookLike.Models;
 using FacebookLike.Neo4j.Node;
+using FacebookLike.Repository;
 using FacebookLike.Service.GoogleCloud;
 using FacebookLike.Service.Neo4jService;
 
@@ -10,19 +11,26 @@ public class PostService : IPostService
     private readonly PostRepository _postRepository;
     private readonly UserRelationRepository _userRelationRepository;
     private readonly StorageService _storageService;
+    private readonly LikeRepository _likeRepository;
     private List<Post> _posts = new();
 
-    public PostService(PostRepository postRepository, UserRelationRepository userRelationRepository, StorageService storageService)
+    public PostService(PostRepository postRepository, UserRelationRepository userRelationRepository, StorageService storageService, LikeRepository likeRepository)
     {
         _postRepository = postRepository;
         _userRelationRepository = userRelationRepository;
         _storageService = storageService;
+        _likeRepository = likeRepository;
     }
 
     public async Task<List<Post>> GetPostsAsync()
     {
         _posts = await _postRepository.GetAll();
         return _posts;
+    }
+    
+    public async Task<PostDetails?> GetPostByIdAsync(string postId, string currentUserId)
+    {
+        return await _postRepository.GetById(postId, currentUserId);
     }
 
     public async Task<List<PostDetails>> GetFriendsPostsAsync(string userId, int page, int pageSize)
@@ -50,5 +58,17 @@ public class PostService : IPostService
 
         await _postRepository.Create(post);
         return new PostDetails { Post = post };
+    }
+
+    public async Task ToggleLikeAsync(string postId, string userId)
+    {
+        if (await _likeRepository.HasUserLiked(postId, userId))
+        {
+            await _likeRepository.RemoveLike(postId, userId);
+        }
+        else
+        {
+            await _likeRepository.AddLike(postId, userId);
+        }
     }
 }
