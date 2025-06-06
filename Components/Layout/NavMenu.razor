@@ -1,6 +1,7 @@
 ﻿@using FacebookLike.Neo4j.Node
 @using FacebookLike.Service
 @using Microsoft.AspNetCore.SignalR.Client
+@using FacebookLike.Components.Composant
 @rendermode InteractiveServer
 @inject IAuthService AuthService
 @inject NavigationManager navigationManager
@@ -34,14 +35,32 @@
             @if (Friends.Count > 0)
             {
                 <div class="nav-item px-3 mt-2">
-                    <div class="list-group">
-                        @foreach (var friend in Friends)
-                        {
-                            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" @onclick="async () => await GoToConversation(friend.Id)" tabindex="0">
-                                @friend.FirstName @friend.LastName
-                                @if (UnreadCounts.TryGetValue(friend.Id, out var count) && count > 0) { <span class="badge bg-danger ms-2">@count</span> }
-                            </a>
-                        }
+                    <div class="bg-dark bg-opacity-25 rounded-3 p-2">
+                        <div class="d-flex align-items-center mb-2 px-2">
+                            <h6 class="text-muted mb-0">Friends</h6>
+                            <NotificationBadge Count="@TotalUnreadCount" Clazz="ms-2" />
+                        </div>
+                        <div class="friends-scroll overflow-auto" style="max-height: 300px;">
+                            @foreach (var friend in SortedFriends)
+                            {
+                                <a class="d-flex align-items-center px-2 py-2 text-decoration-none text-white rounded-2 hover-bg-light" 
+                                   @onclick="async () => await GoToConversation(friend.Id)" 
+                                   tabindex="0">
+                                    <div class="me-2">
+                                        <ProfileImage User="friend" Size="32" clazz="border border-secondary" />
+                                    </div>
+                                    <div class="flex-grow-1 text-truncate">
+                                        <div class="small">@friend.FirstName @friend.LastName</div>
+                                    </div>
+                                    @if (UnreadCounts.TryGetValue(friend.Id, out var count) && count > 0)
+                                    {
+                                        <div class="ms-2 d-flex align-items-center">
+                                            <NotificationBadge Count="@count" Clazz="align-self-center" />
+                                        </div>
+                                    }
+                                </a>
+                            }
+                        </div>
                     </div>
                 </div>
             }
@@ -60,11 +79,60 @@
     </nav>
 </div>
 
+<style>
+    .hover-bg-light:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Scrollbar personnalisée */
+    .friends-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+
+    .friends-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .friends-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .friends-scroll::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+    }
+
+    .friends-scroll::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Style des badges */
+    .notification-badge {
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 500;
+        line-height: 1;
+    }
+</style>
+
 @code {
     private List<User> Friends = new();
     private Dictionary<string, long> UnreadCounts = new();
     private HubConnection? hubConnection;
     private User? currentUser;
+    private long TotalUnreadCount => UnreadCounts.Values.Sum();
+
+    private List<User> SortedFriends => Friends
+        .OrderByDescending(f => UnreadCounts.GetValueOrDefault(f.Id, 0))
+        .ThenBy(f => f.FirstName)
+        .ThenBy(f => f.LastName)
+        .ToList();
 
     protected override async Task OnInitializedAsync()
     {
