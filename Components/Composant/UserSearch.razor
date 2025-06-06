@@ -1,0 +1,155 @@
+@rendermode InteractiveServer
+@using FacebookLike.Neo4j.Node
+@using FacebookLike.Repository
+@inject UserRepository UserRepository
+@inject NavigationManager NavigationManager
+
+<div class="user-search-container position-relative">
+    <div class="input-group input-group-lg">
+        <span class="input-group-text bg-dark border-0">
+            <i class="bi bi-search text-light"></i>
+        </span>
+        <input type="text"
+               class="form-control form-control-lg bg-dark text-light border-0 fs-5"
+               placeholder="Search users..."
+               value="@searchTerm"
+               @oninput="OnInputChanged" />
+    </div>
+    
+    @if (showResults && searchResults.Any())
+    {
+        <div class="search-results bg-secondary border border-light rounded-3 mt-1 position-absolute shadow-lg">
+            @foreach (var user in searchResults)
+            {
+                <div class="search-result-item py-3 px-3 d-flex align-items-center hover-bg-contrast cursor-pointer text-white"
+                     @onclick="() => GoToProfile(user.Id)">
+                    <ProfileImage User="user" Size="40" clazz="me-3 border border-2 border-light" />
+                    <div class="text-truncate">
+                        <div class="fw-bold fs-5">@user.FirstName @user.LastName</div>
+                        <div class="text-light fs-6">@user.Username</div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .user-search-container {
+        width: 400px;
+    }
+
+    .search-results {
+        width: 400px;
+        max-height: 500px;
+        overflow-y: auto;
+        z-index: 1000;
+        background-color: #23272b !important;
+        color: #fff;
+        border: 1px solid #dee2e6 !important;
+    }
+
+    .search-result-item {
+        cursor: pointer;
+        transition: background-color 0.2s;
+        color: #fff;
+        font-size: 1.15rem;
+    }
+
+    .hover-bg-contrast:hover {
+        background-color: #343a40 !important;
+        color: #fff;
+    }
+
+    .cursor-pointer {
+        cursor: pointer;
+    }
+
+    /* Scrollbar personnalisée */
+    .search-results {
+        scrollbar-width: thin;
+        scrollbar-color: #adb5bd transparent;
+    }
+
+    .search-results::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .search-results::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .search-results::-webkit-scrollbar-thumb {
+        background-color: #adb5bd;
+        border-radius: 3px;
+    }
+
+    .search-results::-webkit-scrollbar-thumb:hover {
+        background-color: #ced4da;
+    }
+</style>
+
+@code {
+    private string searchTerm = "";
+    private List<User> searchResults = new();
+    private bool showResults = false;
+    private System.Timers.Timer? searchTimer;
+    private CancellationTokenSource? cts;
+
+    protected override void OnInitialized()
+    {
+        searchTimer = new System.Timers.Timer(300);
+        searchTimer.Elapsed += async (sender, e) => await InvokeAsync(DoSearchAsync);
+        searchTimer.AutoReset = false;
+    }
+
+    private async Task OnInputChanged(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? string.Empty;
+        searchTimer?.Stop();
+        searchTimer?.Start();
+    }
+
+    private async Task DoSearchAsync()
+    {
+        cts?.Cancel();
+        cts = new CancellationTokenSource();
+        var token = cts.Token;
+
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            searchResults.Clear();
+            showResults = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        try
+        {
+            var results = await UserRepository.SearchUsers(searchTerm);
+            if (token.IsCancellationRequested) return;
+            searchResults = results;
+            showResults = true;
+        }
+        catch
+        {
+            searchResults.Clear();
+            showResults = false;
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void GoToProfile(string userId)
+    {
+        showResults = false;
+        NavigationManager.NavigateTo($"/profile/{userId}");
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        searchTimer?.Dispose();
+        cts?.Cancel();
+        cts?.Dispose();
+    }
+} 

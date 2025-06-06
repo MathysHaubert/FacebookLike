@@ -70,4 +70,16 @@ public class UserRepository(IGraphClient client)
             .ExecuteWithoutResultsAsync();
     }
 
+    public async Task<List<User>> SearchUsers(string searchTerm)
+    {
+        var users = await client.Cypher
+            .Match("(u:User)")
+            .Where((User u) => 
+                u.FirstName.Contains(searchTerm, StringComparison.CurrentCultureIgnoreCase) || 
+                u.LastName.Contains(searchTerm, StringComparison.CurrentCultureIgnoreCase) ||
+                u.Username.Contains(searchTerm, StringComparison.CurrentCultureIgnoreCase))
+            .Return(u => u.As<User>())
+            .ResultsAsync;
+        return users.ToList();
+    }
 } 
