@@ -75,6 +75,25 @@ public class PostRepository(IGraphClient client, LikeRepository likeRepo, Commen
         )).ToList();
     }
     
+    // GetPostsByUserIdAsync
+    public async Task<List<PostDetails>> GetPostsByUserIdAsync(string userId, string currentUserId)
+    {
+        var result = await client.Cypher
+            .Match("(u:User)-[:WROTE]->(p:Post)")
+            .Where("u.Id = $userId")
+            .WithParam("userId", userId)
+            .Return((u, p) => new {
+                Post = p.As<Post>(),
+                Author = u.As<User>()
+            })
+            .OrderByDescending("p.CreatedAt")
+            .ResultsAsync;
+
+        return (await Task.WhenAll(
+            result.Select(x => GetPostDetailsAsync(x.Post, x.Author, currentUserId))
+        )).ToList();
+    }
+    
     private async Task<PostDetails?> GetPostDetailsAsync(Post post, User author, string currentUserId)
     {
         return new PostDetails

@@ -6,7 +6,6 @@
 @using PostCreate = FacebookLike.Models.PostCreate
 @inject IPostService PostService
 @inject IAuthService AuthService
-@inject ICommentService CommentService
 @inject IJSRuntime JS
 
 <script src="/js/infiniteScroll.js"></script>
@@ -28,12 +27,6 @@
                 <PostList 
                     Posts="_posts"
                     CurrentUser="currentUser"
-                    CommentsOpen="_commentsOpen"
-                    LoadingComments="_loadingComments"
-                    NewComment="_newComment"
-                    OnLikeClicked="AddOrRemoveLike"
-                    OnToggleCommentsClicked="ToggleComments"
-                    OnAddComment="AddCommentFromList"
                 />
                 @if (_isLoading && _posts.Count > 0)
                 {
@@ -61,9 +54,6 @@
     private const int PageSize = 20;
     private bool _isLoading = false;
     private bool _hasMore = true;
-    private Dictionary<string, bool> _commentsOpen = new();
-    private Dictionary<string, string> _newComment = new();
-    private Dictionary<string, bool> _loadingComments = new();
     private User? currentUser;
 
     protected override async Task OnInitializedAsync()
@@ -91,17 +81,6 @@
         StateHasChanged();
     }
 
-    private async Task AddOrRemoveLike(Post post)
-    {
-        var user = currentUser;
-        if (user == null) return;
-        await PostService.ToggleLikeAsync(post.Id, user.Id);
-        var updated = await PostService.GetPostByIdAsync(post.Id, user.Id);
-        var index = _posts.FindIndex(p => p.Post.Id == post.Id);
-        _posts[index] = updated;
-        StateHasChanged();
-    }
-
     // Infinite scroll
     protected override void OnAfterRender(bool firstRender)
     {
@@ -116,49 +95,6 @@
     public async Task OnScrollToBottom()
     {
         await LoadMorePosts();
-    }
-
-    private async Task ToggleComments(PostDetails postDetails)
-    {
-        var postId = postDetails.Post.Id;
-        if (!_commentsOpen.ContainsKey(postId) || !_commentsOpen[postId])
-        {
-            _commentsOpen[postId] = true;
-            if (postDetails.Comments.Count == 0 && !_loadingComments.ContainsKey(postId))
-            {
-                _loadingComments[postId] = true;
-                StateHasChanged();
-
-                postDetails.Comments = await CommentService.GetCommentsByPostAsync(postId);
-                _loadingComments[postId] = false;
-            }
-
-            if (!_newComment.ContainsKey(postId))
-            {
-                _newComment[postId] = string.Empty;
-            }
-
-            StateHasChanged();
-        }
-        else
-        {
-            _commentsOpen[postId] = false;
-        }
-    }
-
-    private async Task AddCommentFromList((PostDetails postDetails, string content) tuple)
-    {
-        var postDetails = tuple.postDetails;
-        var content = tuple.content;
-        var postId = postDetails.Post.Id;
-        if (string.IsNullOrWhiteSpace(content)) return;
-        var user = currentUser;
-        if (user == null) return;
-        await CommentService.AddCommentAsync(postId, user.Id, content);
-        postDetails.Comments = await CommentService.GetCommentsByPostAsync(postId);
-        postDetails.CommentsCount = postDetails.Comments.Count;
-        _newComment[postId] = string.Empty;
-        StateHasChanged();
     }
 
     private async Task CreatePost(PostCreate postForm)

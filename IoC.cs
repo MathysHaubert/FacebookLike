@@ -17,15 +17,17 @@ namespace FacebookLike
             services.AddScoped<CommentRepository>();
             services.AddScoped<LikeRepository>();
             services.AddScoped<ConversationRepository>();
-            services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<NotificationRepository>();
             services.AddSingleton<StorageService>();
             services.AddScoped<AuthorizationHandler>();
 
+            services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IPostService, PostService>();
             services.AddScoped<ICommentService, CommentService>();
             services.AddScoped<IMessageService, MessageService>();
             services.AddScoped<IFriendService, FriendService>();
+            services.AddScoped<INotificationService, NotificationService>();
           
             services.AddScoped<UserProfileService>();
             

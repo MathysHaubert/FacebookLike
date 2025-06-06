@@ -44,6 +44,8 @@ builder.Services.AddHttpClient("Default", client =>
 });
 builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("Default"));
 
+builder.Services.AddSignalR();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -71,6 +73,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.MapHub<MessageHub>("/messagehub");
-
+app.MapHub<NotificationHub>("/notificationhub");
 
 app.Run();

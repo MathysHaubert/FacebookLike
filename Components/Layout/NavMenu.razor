@@ -7,6 +7,7 @@
 @inject NavigationManager navigationManager
 @inject IFriendService FriendService
 @inject IMessageService MessageService
+@inject INotificationService NotificationService
 @inject IJSRuntime JS
 
 <div class="top-row ps-3 navbar navbar-dark">
@@ -20,16 +21,28 @@
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column d-flex flex-column h-100">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            <NavLink class="nav-link d-flex align-items-center gap-2" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu nav-icon" aria-hidden="true"></span>
+                <span>Home</span>
             </NavLink>
         </div>
 
         @if (currentUser != null)
         {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link d-flex align-items-center gap-2 position-relative" href="/notifications">
+                    <span class="bi bi-bell-fill nav-icon" aria-hidden="true" style="top: -5px;"></span>
+                    <span>Notifications</span>
+                    @if (_unreadNotificationCount > 0)
+                    {
+                        <NotificationBadge Count="@_unreadNotificationCount"  Clazz="notification-badge" />
+                    }
+                </NavLink>
+            </div>
             <div class="nav-item px-3 flex-grow-1">
-                <NavLink class="nav-link" href="my-profile">
-                    <span class="bi bi-person-circle-nav-menu" aria-hidden="true"></span> My profile
+                <NavLink class="nav-link d-flex align-items-center gap-2" href="my-profile">
+                    <span class="bi bi-person-circle-nav-menu nav-icon" aria-hidden="true"></span>
+                    <span>My profile</span>
                 </NavLink>
             </div>
             @if (Friends.Count > 0)
@@ -107,17 +120,33 @@
         background-color: rgba(255, 255, 255, 0.3);
     }
 
-    /* Style des badges */
+    .nav-icon {
+        color: #fff;
+    }
     .notification-badge {
-        min-width: 20px;
-        height: 20px;
-        padding: 0 6px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
+        position: absolute;
+        top: 4px;
+        left: 20px;
+        background: #dc3545;
+        color: #fff;
+        border-radius: 50%;
+        padding: 2px 7px;
         font-size: 0.75rem;
+        font-weight: bold;
+        box-shadow: 0 0 0 2px #1a237e;
+        z-index: 2;
+        transition: transform 0.2s;
+    }
+    .nav-link:hover .nav-icon {
+        color: #ffc107;
+        transform: scale(1.1);
+    }
+    .nav-link {
+        color: #fff;
         font-weight: 500;
-        line-height: 1;
+    }
+    .nav-link.active, .nav-link:active {
+        color: #ffc107;
     }
 </style>
 
@@ -125,8 +154,10 @@
     private List<User> Friends = new();
     private Dictionary<string, long> UnreadCounts = new();
     private HubConnection? hubConnection;
+    private HubConnection? notificationHubConnection;
     private User? currentUser;
     private long TotalUnreadCount => UnreadCounts.Values.Sum();
+    private long _unreadNotificationCount;
 
     private List<User> SortedFriends => Friends
         .OrderByDescending(f => UnreadCounts.GetValueOrDefault(f.Id, 0))
@@ -142,6 +173,8 @@
             Friends = await FriendService.GetFriendsAsync(currentUser.Id);
             await LoadUnreadCounts();
             await SetupSignalR();
+            await SetupNotificationHub();
+            _unreadNotificationCount = await NotificationService.GetUnreadCountAsync(currentUser.Id);
         }
     }
 
@@ -184,6 +217,34 @@
             });
     }
 
+    private async Task SetupNotificationHub()
+    {
+        if (currentUser == null) return;
+        
+        try
+        {
+            notificationHubConnection = new HubConnectionBuilder()
+                .WithUrl(navigationManager.ToAbsoluteUri($"/notificationhub?userId={currentUser.Id}"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            notificationHubConnection.On<string, int>("UpdateNotificationCount", (userId ,count) =>
+            {
+                if (userId != currentUser.Id) return;
+                
+                _unreadNotificationCount = count;
+                InvokeAsync(StateHasChanged);   
+            });
+
+            await notificationHubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error setting up notification hub: {ex.Message}");
+            await JS.InvokeVoidAsync("blazoredToast.show", "Unable to connect to notifications service");
+        }
+    }
+
     private async Task GoToConversation(string friendId)
     {
         if (currentUser == null) return;
@@ -201,6 +262,18 @@
         catch (Exception e)
         {
             JS.InvokeVoidAsync("blazoredToast.show", "Logout failed. Please try again.");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+        if (notificationHubConnection is not null)
+        {
+            await notificationHubConnection.DisposeAsync();
         }
     }
 }

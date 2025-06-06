@@ -147,7 +147,7 @@ public class InitSeeder
                 var key = userA.Username.CompareTo(userB.Username) < 0 ? $"{userA.Username}|{userB.Username}" : $"{userB.Username}|{userA.Username}";
                 if (!friendshipSet.Contains(key))
                 {
-                    await _userRelationRepository.CreateFriendship(userA.Username, userB.Username);
+                    await _userRelationRepository.CreateFriendship(userA.Id, userB.Id);
                     friendshipSet.Add(key);
                 }
             }

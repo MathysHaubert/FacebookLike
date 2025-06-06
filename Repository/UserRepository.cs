@@ -21,6 +21,16 @@ public class UserRepository(IGraphClient client)
             .ResultsAsync;
         return user.SingleOrDefault();
     }
+    
+    public async Task<User?> GetByUsername(string username)
+    {
+        var user = await client.Cypher
+            .Match("(u:User)")
+            .Where((User u) => u.Username == username)
+            .Return(u => u.As<User>())
+            .ResultsAsync;
+        return user.SingleOrDefault();
+    }
 
     public async Task<User?> GetById(string id)
     {

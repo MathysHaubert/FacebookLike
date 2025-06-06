@@ -1,5 +1,8 @@
 @using FacebookLike.Models
 @using FacebookLike.Neo4j.Node
+@using FacebookLike.Service
+@inject IPostService PostService
+@inject ICommentService CommentService
 
 <div class="card mb-4">
     <div class="card-body">
@@ -21,11 +24,11 @@
         </div>
         <hr />
         <div class="d-flex justify-content-between">
-            <button class="btn btn-light w-100 me-2 like-btn" @onclick="OnLikeClicked">
+            <button class="btn btn-light w-100 me-2 like-btn" @onclick="HandleLike">
                 <i class="bi @(IsLikedByUser ? "bi-heart-fill text-danger" : "bi-heart text-secondary")"></i>
                 @(IsLikedByUser ? "Unlike" : "Like")
             </button>
-            <button class="btn btn-light w-100" @onclick="OnToggleCommentsClicked">
+            <button class="btn btn-light w-100" @onclick="HandleToggleComments">
                 <i class="bi bi-chat"></i>
                 Comment
             </button>
@@ -40,7 +43,7 @@
                 else
                 {
                     <CommentList Comments="Comments" CurrentUser="CurrentUser" />
-                    <CommentInput Value="@NewComment" OnSend="OnAddComment" />
+                    <CommentInput Value="@NewComment" OnSend="HandleAddComment" />
                 }
             </div>
         }
@@ -59,9 +62,46 @@
     [Parameter] public List<CommentDetails> Comments { get; set; }
     [Parameter] public User CurrentUser { get; set; }
     [Parameter] public string NewComment { get; set; }
-    [Parameter] public EventCallback OnLikeClicked { get; set; }
-    [Parameter] public EventCallback OnToggleCommentsClicked { get; set; }
-    [Parameter] public EventCallback<string> OnAddComment { get; set; }
+
+    private async Task HandleLike()
+    {
+        if (CurrentUser == null) return;
+        await PostService.ToggleLikeAsync(Post.Id, CurrentUser.Id);
+        var updatedPost = await PostService.GetPostByIdAsync(Post.Id, CurrentUser.Id);
+        if (updatedPost != null)
+        {
+            IsLikedByUser = updatedPost.IsLikedByUser;
+            LikesCount = updatedPost.LikesCount;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleToggleComments()
+    {
+        if (!ShowComments)
+        {
+            LoadingComments = true;
+            StateHasChanged();
+            Comments = await CommentService.GetCommentsByPostAsync(Post.Id);
+            LoadingComments = false;
+            ShowComments = true;
+        }
+        else
+        {
+            ShowComments = false;
+        }
+        StateHasChanged();
+    }
+
+    private async Task HandleAddComment(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content) || CurrentUser == null) return;
+        await CommentService.AddCommentAsync(Post.Id, CurrentUser.Id, content);
+        Comments = await CommentService.GetCommentsByPostAsync(Post.Id);
+        CommentsCount = Comments.Count;
+        NewComment = string.Empty;
+        StateHasChanged();
+    }
 
     private string FormatTime(DateTime dateTime)
     {
